@@ -68,6 +68,18 @@ how we avoid two people rewriting the same file.
 
 ## Log
 
+### 2026-10-27 — Make collector arrows visible
+**Who:** Nick (+ Claude Code) · **Branch:** fix/collector-arrows
+
+- **What changed:** In the lateral arrows' collector stage, the arrows now ride 3.5 ft above the edge
+  beams and draw on top of them, and they are sized against the largest collector force at that level
+  (with a visible minimum) instead of the wall base shear.
+- **Why:** they were hidden inside the edge beam / collector members, and on the shared scale a 1.1 k
+  collector next to a 16.5 k base shear shrank to specks.
+- **Files:** `src/frontend/lateral-arrows.js`, `CHANGELOG.md`
+- **Heads up:** collector arrow size now compares collectors with each other, not with the walls; the
+  labels carry the actual forces.
+
 ### 2026-10-27 — Gravity results now include each member's tributary area
 **Who:** Zack (+ Claude Code) · **Branch:** feature/gravity
 
