@@ -61,6 +61,19 @@ how we avoid two people rewriting the same file.
 
 ## Log
 
+### 2026-10-27 — Fix overlapping labels in plan view
+**Who:** Nick (+ Claude Code) · **Branch:** fix/plan-label-overlap
+
+- **What changed:** Story force arrows now meet the building mid-bay instead of on a grid line, and
+  their labels sit together just past the longest arrow, one row per level. Chord labels moved to
+  the far corners of the diaphragm (now "Max chord tension / compression"), and the diaphragm shear
+  and moment titles moved past the far edge, one row each.
+- **Why:** in plan view the chord, story force and diagram labels sat on top of each other and on
+  the grid bubbles, in both load directions.
+- **Files:** `src/frontend/overlay.js`, `CHANGELOG.md`
+- **Heads up:** the flow dots for story forces follow the moved arrows (`storyFace`); the analysis
+  is unchanged, so `lateral.js` paths still record the windward point at mid-face.
+
 ### 2026-10-27 — Add camera view presets and grid bubbles
 **Who:** Nick (+ Claude Code) · **Branch:** feature/camera-views
 
