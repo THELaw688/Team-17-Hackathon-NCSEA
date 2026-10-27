@@ -84,12 +84,30 @@
   <h3>Lateral loads</h3>
   <label>Type <select id="latType"><option value="wind">Wind</option><option value="seismic">Seismic</option></select></label>
   <label>Direction <select id="latDir"><option value="x">X (east-west)</option><option value="y">Y (north-south)</option></select></label>
-  <label>Wind (psf) <input id="windPressure" type="number" value="20"></label>
-  <label>Seismic Cs <input id="Cs" type="number" step="0.01" value="0.10"></label>
+  <label>Input mode <select id="latMode"><option value="override">Override</option><option value="asce7">ASCE 7</option></select></label>
+  <div id="asce7Inputs">
+    <label>Risk category <select id="riskCategory"><option>I</option><option selected>II</option><option>III</option><option>IV</option></select></label>
+    <label>SDS (g) <input id="SDS" type="number" step="0.01" value="1.00"></label>
+    <label>SD1 (g) <input id="SD1" type="number" step="0.01" value="0.60"></label>
+    <label>Lateral system <select id="system">
+      <option value="specialRCWall">Special RC shear walls</option>
+      <option value="ordinaryRCWall">Ordinary RC shear walls</option>
+      <option value="specialMasonryWall">Special masonry shear walls</option>
+    </select></label>
+    <label>Wind speed V (mph) <input id="windSpeed" type="number" value="105"></label>
+    <label>Exposure <select id="exposure"><option>B</option><option selected>C</option><option>D</option></select></label>
+  </div>
+  <div id="overrideInputs">
+    <label>Wind (psf) <input id="windPressure" type="number" value="20"></label>
+    <label>Seismic Cs <input id="Cs" type="number" step="0.01" value="0.10"></label>
+  </div>
+  <label title="Seismic with a rigid diaphragm only (ASCE 7 12.8.4.2)">Accidental torsion <input id="accidentalTorsion" type="checkbox" checked></label>
   <label>Diaphragm <select id="diaphragm"><option value="flexible">Flexible</option><option value="rigid">Rigid</option></select></label>
 
   <h3>View</h3>
   <label>Show load flow <input id="flow" type="checkbox" checked></label>
+  <label>Show diagrams <input id="diagrams" type="checkbox" checked></label>
+  <label>Wall arrows <select id="wallStyle"><option value="strut">Diagonal strut</option><option value="edges">Edge shear flow</option></select></label>
   <button id="clear">Clear selection</button>
 </div>
 
@@ -106,8 +124,10 @@
 <script src="../shared/import-ifc.js"></script>
 <script src="../shared/gravity.js"></script>
 <script src="../shared/lateral.js"></script>
+<script src="../shared/diagrams.js"></script>
 <script src="dropzone.js"></script>
 <script src="explain.js"></script>
+<script src="lateral-arrows.js"></script>
 <script src="overlay.js"></script>
 <script src="scene.js"></script>
 <script src="app.js"></script>

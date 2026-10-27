@@ -14,10 +14,20 @@
     ['floorDead', 'floorLive', 'roofDead', 'roofLive'].forEach(k => { inputs[k] = +$(k).value; });
     inputs.wallPreset = $('wallPreset').value;
     Object.assign(inputs.lateral, {
-      type: $('latType').value, dir: $('latDir').value, windPressure: +$('windPressure').value,
-      Cs: +$('Cs').value, diaphragm: $('diaphragm').value
+      type: $('latType').value, dir: $('latDir').value, mode: $('latMode').value,
+      windPressure: +$('windPressure').value, Cs: +$('Cs').value,
+      riskCategory: $('riskCategory').value, SDS: +$('SDS').value, SD1: +$('SD1').value,
+      system: $('system').value, windSpeed: +$('windSpeed').value, exposure: $('exposure').value,
+      accidentalTorsion: $('accidentalTorsion').checked, diaphragm: $('diaphragm').value
     });
     return inputs;
+  };
+
+  // Only the boxes for the chosen input mode are shown, so nobody edits a value that isn't used.
+  const showModeInputs = () => {
+    const asce7 = $('latMode').value === 'asce7';
+    $('asce7Inputs').style.display = asce7 ? '' : 'none';
+    $('overrideInputs').style.display = asce7 ? 'none' : '';
   };
 
   // An imported model has geometry but no analysis: gravity.js and lateral.js address members by
@@ -62,7 +72,8 @@
         <h2>${state.mode === 'gravity' ? 'Gravity load path' : 'Lateral load path'}</h2>
         <p>${state.mode === 'gravity'
           ? 'Load starts on the deck, goes to the filler beams, then the girders, then the columns, and ends at the footings. Moving dots show the flow; color shows force (blue light, red heavy).'
-          : `${b.inputs.lateral.type === 'wind' ? 'Wind' : 'Seismic'} load in the ${b.inputs.lateral.dir.toUpperCase()} direction goes into each floor diaphragm, along the collectors into the shear walls, and down to the wall footings.`}</p>
+          : `${b.inputs.lateral.type === 'wind' ? 'Wind' : 'Seismic'} load in the ${b.inputs.lateral.dir.toUpperCase()} direction goes into each floor diaphragm, along the collectors into the shear walls, and down to the wall footings.</p>
+          <p>The floor acts like a deep beam lying flat. Its <b style="color:#2b7bba">shear</b> and <b style="color:#d9822b">moment</b> diagrams are drawn on the roof, or on the level of the member you click; <b style="color:#9b59b6">collector</b> force is drawn as a fence along each wall line. Switch the diaphragm between flexible and rigid to see them change.`}</p>
         <p><b>Total gravity load:</b> ${LP.round(total, 1)} kips<br><b>Base shear:</b> ${LP.round(V, 1)} kips</p>
         <p class="muted">Click any member to see where its load comes from, where it goes, and the calculation.</p>`;
     } else {
@@ -80,6 +91,12 @@
     const b = LP.buildModel(inputs);
     LP.runGravity(b);
     LP.runLateral(b);
+    // Role 5 sets LP.asce7Ready in lateral.js once storyForces reads the ASCE 7 inputs.
+    if (inputs.lateral.mode === 'asce7' && !LP.asce7Ready) {
+      b.warnings.push('ASCE 7 inputs are not connected to the analysis yet (role 5 is building it). ' +
+        'The story forces still use the Override values: wind ' + inputs.lateral.windPressure +
+        ' psf, Cs ' + inputs.lateral.Cs + '.');
+    }
     state.b = b;
     view.build(b);
     showPanel(view.selected);
@@ -118,13 +135,17 @@
   document.querySelectorAll('[data-mode]').forEach(el => el.addEventListener('click', () => setMode(el.dataset.mode)));
   $('latDir').addEventListener('change', () => setMode('lateral'));
   $('diaphragm').addEventListener('change', () => setMode('lateral'));
+  $('latMode').addEventListener('change', () => { showModeInputs(); setMode('lateral'); });
   $('flow').addEventListener('change', e => { view.overlay.showFlow = e.target.checked; view.refresh(); });
+  $('diagrams').addEventListener('change', e => { view.overlay.showDiagrams = e.target.checked; view.refresh(); });
+  $('wallStyle').addEventListener('change', e => { view.overlay.wallStyle = e.target.value; setMode('lateral'); });
   $('clear').addEventListener('click', () => view.select(null));
   $('panel').addEventListener('click', e => {
     const id = e.target.dataset && e.target.dataset.id;
     if (id) { e.preventDefault(); view.select(id); }
   });
 
+  showModeInputs();
   rebuild();
   setMode('gravity');
 })(window);
