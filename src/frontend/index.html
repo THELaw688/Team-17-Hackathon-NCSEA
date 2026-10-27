@@ -1,0 +1,159 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Load Path Explorer</title>
+<style>
+  :root { --ink: #1d2733; --muted: #5d6875; --line: #d5dae0; --bg: #ffffff; --accent: #2f6fd0; --warn: #b54708; }
+  * { box-sizing: border-box; }
+  body { margin: 0; font: 14px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif; color: var(--ink); background: var(--bg);
+         display: grid; grid-template-columns: 250px 1fr 360px; grid-template-rows: 52px 1fr; height: 100vh; overflow: hidden; }
+  header { grid-column: 1 / -1; display: flex; align-items: center; gap: 16px; padding: 0 16px; border-bottom: 1px solid var(--line); }
+  header h1 { font-size: 17px; margin: 0; }
+  header .note { margin-left: auto; color: var(--muted); font-size: 12px; }
+  .toggle button { font: inherit; padding: 6px 16px; border: 1px solid var(--line); background: #fff; cursor: pointer; }
+  .toggle button:first-child { border-radius: 6px 0 0 6px; }
+  .toggle button:last-child { border-radius: 0 6px 6px 0; border-left: 0; }
+  .toggle button.on { background: var(--accent); border-color: var(--accent); color: #fff; }
+  #controls { overflow-y: auto; padding: 12px 16px; border-right: 1px solid var(--line); }
+  #controls h3 { font-size: 12px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); margin: 16px 0 6px; }
+  #controls label { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin: 6px 0; }
+  #controls input, #controls select { width: 110px; font: inherit; padding: 3px 6px; border: 1px solid var(--line); border-radius: 4px; }
+  #controls input[type=checkbox] { width: auto; }
+  #controls button { font: inherit; margin-top: 10px; padding: 5px 10px; border: 1px solid var(--line); border-radius: 4px; background: #fff; cursor: pointer; }
+  #wallRows { display: grid; gap: 6px; }
+  .wall-row { margin: 6px 0 0; padding: 6px 8px; border: 1px solid var(--line); border-radius: 4px; }
+  .wall-row legend { padding: 0 4px; color: var(--muted); font-size: 12px; }
+  #controls .wall-row label { display: grid; grid-template-columns: 1fr 110px; margin: 5px 0; font-size: 12px; }
+  #controls .wall-row select, #controls .wall-row input { min-width: 0; width: 100%; }
+  #addWall:disabled { color: var(--muted); cursor: not-allowed; }
+  #view { position: relative; min-width: 0; }
+  #legend { position: absolute; left: 12px; bottom: 12px; background: rgba(255,255,255,.9); padding: 6px 10px; border: 1px solid var(--line); border-radius: 6px; font-size: 12px; }
+  #legend .bar { width: 160px; height: 8px; border-radius: 4px; background: linear-gradient(90deg, hsl(216,75%,50%), hsl(108,75%,50%), hsl(54,75%,50%), hsl(0,75%,50%)); margin: 4px 0; }
+  #legend .ends { display: flex; justify-content: space-between; color: var(--muted); }
+  aside { overflow-y: auto; padding: 12px 16px; border-left: 1px solid var(--line); }
+  aside h2 { font-size: 16px; margin: 4px 0 8px; }
+  aside .explain-section { margin: 12px 0 4px; }
+  aside .explain-section > summary { display: flex; align-items: center; gap: 8px; padding: 6px 8px; border: 1px solid var(--line); border-radius: 4px; background: #f7f8fa; font-size: 13px; font-weight: 600; cursor: pointer; list-style: none; }
+  aside .explain-section > summary::-webkit-details-marker { display: none; }
+  aside .explain-section > summary::before { width: 0; height: 0; border-top: 5px solid transparent; border-bottom: 5px solid transparent; border-left: 6px solid currentColor; content: ""; transition: transform .12s; }
+  aside .explain-section[open] > summary::before { transform: rotate(90deg); }
+  aside .explain-section > summary:hover { border-color: var(--accent); color: var(--accent); }
+  aside .explain-section > summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  aside ul, aside ol { padding-left: 18px; margin: 4px 0; }
+  aside a { color: var(--accent); }
+  .big { font-size: 22px; font-weight: 600; margin: 4px 0 8px; }
+  .muted { color: var(--muted); }
+  .calc li { font-family: ui-monospace, Consolas, monospace; font-size: 12px; margin: 2px 0; }
+  .warn { color: var(--warn); border: 1px solid var(--warn); border-radius: 6px; padding: 6px 8px; margin-bottom: 8px; }
+  #drop { border: 2px dashed var(--line); border-radius: 8px; padding: 12px 10px; text-align: center; cursor: pointer;
+          background: #fafbfc; transition: border-color .12s, background .12s; }
+  #drop:hover, #drop.over { border-color: var(--accent); background: #eef4fc; }
+  #drop.busy { cursor: progress; border-style: solid; }
+  #drop .big-label { font-weight: 600; }
+  #drop .hint { color: var(--muted); font-size: 12px; margin-top: 2px; }
+  #drop input[type=file] { display: none; }
+  .drop-status { margin-top: 8px; font-size: 12px; line-height: 1.4; text-align: left; }
+  .drop-status.ok { color: #1a7f4b; }
+  .drop-status.bad { color: var(--warn); }
+  .drop-status code { font-family: ui-monospace, Consolas, monospace; font-size: 11px; word-break: break-all; }
+  .privacy { font-size: 11px; color: var(--muted); margin-top: 6px; line-height: 1.4; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Load Path Explorer</h1>
+  <div class="toggle"><button data-mode="gravity">Gravity</button><button data-mode="lateral">Lateral</button></div>
+  <span class="note">Teaching tool: simplified hand-calc methods, service loads. Not for design.</span>
+</header>
+
+<div id="controls">
+  <h3>Import a model</h3>
+  <div id="drop">
+    <div class="big-label">Drop an IFC file here</div>
+    <div class="hint">or click to choose &middot; .ifc from Revit</div>
+    <input type="file" accept=".ifc,.e2k,.$et">
+  </div>
+  <div class="drop-status" data-role="status"></div>
+  <p class="privacy">The file is read in your browser, used, and discarded. It is never uploaded,
+    never written to disk, and never stored. This app has no server.</p>
+  <button id="useInputs">Back to the grid model</button>
+
+  <h3>Building</h3>
+  <label>X bays (ft) <input id="xBays" value="30, 30, 30"></label>
+  <label>Y bays (ft) <input id="yBays" value="25, 25"></label>
+  <label>Story heights <input id="stories" value="14, 13, 13"></label>
+  <label>Beam spaces / bay <input id="beamSpaces" type="number" min="1" max="6" value="3"></label>
+  <label>Lateral layout <select id="wallPreset"><option value="symmetric">Symmetric preset</option><option value="eccentric">Eccentric preset</option><option value="custom">Custom layout</option></select></label>
+  <div id="wallEditor" hidden>
+    <p id="wallEditorHelp" class="muted" style="font-size:12px"></p>
+    <div id="wallRows"></div>
+    <div id="wallError" class="warn" hidden></div>
+    <button id="addWall" type="button">Add lateral element</button>
+  </div>
+
+  <h3>Gravity loads (psf)</h3>
+  <label>Floor dead <input id="floorDead" type="number" value="80"></label>
+  <label>Floor live <input id="floorLive" type="number" value="50"></label>
+  <label>Roof dead <input id="roofDead" type="number" value="30"></label>
+  <label>Roof live <input id="roofLive" type="number" value="20"></label>
+
+  <h3>Lateral loads</h3>
+  <label>Type <select id="latType"><option value="wind">Wind</option><option value="seismic">Seismic</option></select></label>
+  <label>Direction <select id="latDir"><option value="x">X (east-west)</option><option value="y">Y (north-south)</option></select></label>
+  <label>Input mode <select id="latMode"><option value="override">Override</option><option value="asce7">ASCE 7</option></select></label>
+  <label>Lateral system <select id="system">
+    <option value="specialRCWall">Special RC shear walls</option>
+    <option value="ordinaryRCWall">Ordinary RC shear walls</option>
+    <option value="specialMasonryWall">Special masonry shear walls</option>
+    <option value="specialSteelBracedFrame">Special steel concentrically braced frames</option>
+    <option value="specialSteelMomentFrame">Special steel moment frames</option>
+    <option value="bucklingRestrainedBracedFrame">Buckling-restrained braced frames</option>
+  </select></label>
+  <p class="muted" style="font-size:11px">In ASCE 7 mode, this system sets R for seismic force calculations. Steel-frame force distribution remains a simplified line-length approximation, not a frame design analysis.</p>
+  <div id="asce7Inputs">
+    <label>Risk category <select id="riskCategory"><option>I</option><option selected>II</option><option>III</option><option>IV</option></select></label>
+    <label>SDS (g) <input id="SDS" type="number" step="0.01" value="1.00"></label>
+    <label>SD1 (g) <input id="SD1" type="number" step="0.01" value="0.60"></label>
+    <label>Wind speed V (mph) <input id="windSpeed" type="number" value="105"></label>
+    <label>Exposure <select id="exposure"><option>B</option><option selected>C</option><option>D</option></select></label>
+  </div>
+  <div id="overrideInputs">
+    <label>Wind (psf) <input id="windPressure" type="number" value="20"></label>
+    <label>Seismic Cs <input id="Cs" type="number" step="0.01" value="0.10"></label>
+  </div>
+  <label title="Seismic with a rigid diaphragm only (ASCE 7 12.8.4.2)">Accidental torsion <input id="accidentalTorsion" type="checkbox" checked></label>
+  <label>Diaphragm <select id="diaphragm"><option value="flexible">Flexible</option><option value="rigid">Rigid</option></select></label>
+
+  <h3>View</h3>
+  <label title="Click a grid bubble to rename it; press Enter to save.">Show gridlines <input id="gridlines" type="checkbox" checked></label>
+  <label>Show load flow <input id="flow" type="checkbox" checked></label>
+  <label>Show diagrams <input id="diagrams" type="checkbox" checked></label>
+  <label>Shear-wall arrows <select id="wallStyle"><option value="strut">Diagonal strut</option><option value="edges">Edge shear flow</option></select></label>
+  <button id="clear">Clear selection</button>
+</div>
+
+<div id="view">
+  <div id="legend">Force in member (vs. heaviest of its type)<div class="bar"></div><div class="ends"><span>light</span><span>heavy</span></div></div>
+</div>
+
+<aside><div id="warnings"></div><div id="panel"></div></aside>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+<script src="../shared/model.js"></script>
+<script src="../shared/elements.js"></script>
+<script src="../shared/import-ifc.js"></script>
+<script src="../shared/gravity.js"></script>
+<script src="../shared/lateral.js"></script>
+<script src="../shared/diagrams.js"></script>
+<script src="dropzone.js"></script>
+<script src="explain.js"></script>
+<script src="lateral-arrows.js"></script>
+<script src="gravity-flow.js"></script>
+<script src="overlay.js"></script>
+<script src="scene.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

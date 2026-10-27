@@ -52,7 +52,7 @@ Each teammate should point their own tool at this file so the whole team gets th
 > everyone can find things.
 
 ```
-Team-24-Hackathon-NCSEA/
+Team-17-Hackathon-NCSEA/
 ├── README.md           # this file — the team contract
 ├── CHANGELOG.md        # running log of changes — read at task start, update at task end
 ├── docs/               # design notes, diagrams, meeting notes, research
@@ -275,8 +275,8 @@ git push --tags
 ## Getting started
 
 ```bash
-git clone https://github.com/THELaw688/Team-24-Hackathon-NCSEA.git
-cd Team-24-Hackathon-NCSEA
+git clone https://github.com/THELaw688/Team-17-Hackathon-NCSEA.git
+cd Team-17-Hackathon-NCSEA
 git config core.hooksPath .githooks    # enables the staleness guard - do this once
 git checkout dev
 ```

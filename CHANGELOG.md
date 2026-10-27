@@ -52,11 +52,496 @@ markers, order the two by date, done. Never resolve a conflict here by discardin
 Add a line when you start something that will take a while, and remove it when you're done. This is
 how we avoid two people rewriting the same file.
 
-- _(nothing in progress)_
+- **Zack (+ Claude Code)** — Role 4, gravity: `src/shared/gravity.js` and the gravity part of
+  `tests/shared/check.js` (tributary area for the selected member, self-weight, more check cases).
+  Branch `feature/gravity`. I won't touch `lateral.js` or the lateral checks.
+
+- **Sam** — IFC / ETABS import and in-program editing. Spec in `docs/import-and-editing.md`.
+  Foundation `src/shared/elements.js` is done; `src/shared/import-ifc.js`,
+  `src/shared/import-etabs.js` and `src/frontend/editor.js` are not written yet — if you pick one
+  up, say so here first.
+- **Josh (+ Claude Code)** — Role 5, lateral loads + diaphragm: `LP.storyForces` and
+  `LP.distribute` in `src/shared/lateral.js` (ASCE 7 inputs, 5% accidental torsion, semi-rigid
+  note). Branch `feature/lateral-loads`. Role 6: `runLateral` in the same file is yours, I won't touch it.
 
 ---
 
 ## Log
+
+### 2026-10-27 — Stage chips: number above the name on every chip
+**Who:** Zack (+ Claude Code) · **Branch:** fix/stage-chip-layout
+
+- **What changed:** Every stage chip in the caption bars (gravity and lateral) now shows its
+  number on one line and its name underneath ("4" / "Columns"), so all chips in a bar have the
+  same layout and height. New `LP.setStageChip(chip, label)` in `overlay.js` does the layout;
+  `lateral-arrows.js` now uses it when it renames chips 4 and 5 for the lateral system
+  (e.g. "Frame lines" / "Frame bases" for braced frames).
+- **Why:** at laptop widths some chips wrapped onto two lines and others didn't, so the row looked
+  uneven.
+- **Files:** `src/frontend/overlay.js`, `src/frontend/lateral-arrows.js` (two lines),
+  `CHANGELOG.md`
+- **Heads up:** **To relabel a stage chip, call `LP.setStageChip`, not `chip.textContent =`**, or
+  that chip goes back to one line. Role 3's files (Nick).
+
+### 2026-10-27 — Collapse button for the load path caption bars
+**Who:** Zack (+ Claude Code) · **Branch:** feature/collapsible-captions
+
+- **What changed:** The stage caption bar (lateral arrows and gravity glow) has a **Hide ▾**
+  button at the end of its chip row. Collapsed, the bar shrinks to a small **Show stages ▴** pill
+  in the bottom-right corner; the animation keeps playing. One shared setting covers both modes
+  and is remembered in the browser. The expanded bar is now `min(520px, max(300px, 100% - 320px))`
+  wide, so on a laptop-size screen it no longer overlaps the force legend.
+- **Why:** the bar still covered part of the model, especially the near corner of the building.
+- **Files:** `src/frontend/overlay.js` (new `LP.collapsibleCaption`), `src/frontend/lateral-arrows.js`
+  and `src/frontend/gravity-flow.js` (one call each, plus the width), `CHANGELOG.md`
+- **Heads up:** role 3's files (Nick). The collapsed state is stored in `localStorage` under
+  `lp.captionsCollapsed`; if it's unavailable the bar just starts expanded.
+
+### 2026-10-27 — Move the load path caption bars to the bottom right
+**Who:** Zack (+ Claude Code) · **Branch:** fix/caption-bar-bottom-right
+
+- **What changed:** The stage caption bar (chips plus the line of text) for both the lateral
+  arrows and the gravity glow now sits in the bottom-right corner of the 3D view, 520 px wide,
+  instead of centred along the bottom.
+- **Why:** centred, it covered the middle of the building, which is where the load path is drawn.
+  The bottom right keeps it clear of the model and of the force legend at the bottom left.
+- **Files:** `src/frontend/lateral-arrows.js`, `src/frontend/gravity-flow.js` (one style line each),
+  `CHANGELOG.md`
+- **Heads up:** `lateral-arrows.js` is Nick's (role 3); this changes only the bar's position and
+  width. Both bars keep the same style so they sit in the same place in either mode.
+
+### 2026-10-27 — Default a missing risk category to II in the seismic Cs
+**Who:** Nick (+ Claude Code) · **Branch:** fix/default-risk-category
+
+- **What changed:** `LP.seismicCs` treats a missing or unknown `riskCategory` as II (Ie = 1.0), and its
+  calc line shows the category actually used.
+- **Why:** the steel lateral-system checks added with PR #19 build ASCE 7 inputs without a risk
+  category, so Ie was undefined and Cs came out NaN: 3 of the hand-calc checks failed on `dev`. The app
+  always sends a risk category, so on-screen numbers are unchanged; this matches the existing rule that
+  a missing `mode` means Override.
+- **Files:** `src/shared/lateral.js`, `CHANGELOG.md`
+- **Heads up:** **For role 5 (Josh):** this is a two-line change inside `LP.seismicCs`; please check
+  you're happy with II as the default. **For Kevin:** all checks pass again, including your three new
+  steel-system checks.
+
+### 2026-10-27 — Add steel lateral-system choices and schematic graphics
+**Who:** Kevin (+ Copilot SDK in VS Code) · **Branch:** feature/steel-lateral-systems
+
+- **What changed:** Added special steel concentrically braced frames (R = 6), special steel moment
+  frames (R = 8), and buckling-restrained braced frames (R = 8) to the lateral-system selector.
+  ASCE 7 seismic calculations use each system's R factor; the 3D view distinguishes portal frames,
+  diagonal braces, BRB cores, and shear walls.
+- **Why:** Let users compare lateral-system types and their effect on seismic base shear.
+- **Files:** `src/frontend/app.js`, `src/frontend/explain.js`, `src/frontend/index.html`,
+  `src/frontend/scene.js`, `src/shared/lateral.js`, `src/shared/model.js`,
+  `tests/shared/check.js`, `docs/load-path-explorer.md`
+- **Heads up:** Steel-frame forces use the existing simplified line-length distribution; this is
+  schematic, not frame analysis or design.
+
+### 2026-10-27 — Draw gravity load as glowing strips instead of dots
+**Who:** Zack (+ Claude Code), for role 3 review · **Branch:** feature/gravity-glow
+
+- **What changed:** In gravity mode the flow dots are replaced by a staged glow for one level (the
+  roof, or the clicked member's level), with a caption bar and stage chips like the lateral arrows:
+  1. Deck: a glowing zigzag (the ribbed deck profile), as long as the bay, travels from mid-span
+     out to each beam.
+  2. Beams: each beam glows along its length, then splits at mid-span and slides to both ends.
+  3. Girders: the same, into the columns.
+  4. Columns: a pulse runs down to grade.
+  5. Footings: they pulse.
+
+  Brightness scales with load within each member type, and captions quote numbers from the
+  analysis. New `src/frontend/gravity-flow.js` (`LP.GravityFlow`, same shape as `LP.LateralArrows`).
+- **Why:** dots didn't show how load moves through a floor system: across the deck, along each
+  beam to its ends, then into girders and columns. The zigzag keeps the deck stage visually
+  different from the framing stages.
+- **Files:** `src/frontend/gravity-flow.js` (new), `src/frontend/overlay.js`,
+  `src/frontend/index.html`, `src/frontend/app.js` (panel text), `docs/load-path-explorer.md`,
+  `CHANGELOG.md`
+- **Heads up:** **This edits role 3's `overlay.js`** (Nick, please review): the gravity dot loop,
+  `particles` and the dot geometry are gone; the overlay now calls `gravityFlow.build` / `tick`
+  the way it calls `lateralArrows`. One script tag added to role 1's `index.html`, and the gravity
+  panel text in `app.js` now describes the glow instead of dots. Lateral mode is unchanged. The
+  earlier `test/gravity-flow` branch is superseded and can be deleted.
+
+### 2026-10-27 — ASCE 7 wind story forces (Input mode: ASCE 7)
+**Who:** Josh (+ Claude Code) · **Branch:** feature/lateral-loads
+
+- **What changed:** In ASCE 7 input mode, `LP.storyForces` calculates the wind pressure from wind
+  speed V and exposure instead of the typed psf, via new `LP.asce7Wind` and `LP.windKz` in
+  `src/shared/lateral.js`. ASCE 7-22 directional procedure for the MWFRS: Kz from Table 26.10-1
+  (exposure B/C/D), qz = 0.00256 Kz Kzt Ke V^2, windward p = qz Kd G (0.8) at each level's
+  elevation, leeward p = qh Kd G |Cp| with Cp from L/B (Fig. 27.3-1), net = windward + leeward with
+  the 16 psf minimum (27.1.5). Every factor and its ASCE 7 reference shows in the story force calc.
+  Removed the "ASCE 7 wind is not built yet" warning.
+- **Why:** replaces the hand-typed wind psf with the code calculation, using the wind speed and
+  exposure inputs role 1 added; completes role 5's ASCE 7 story forces (seismic merged in PR #13).
+- **Files:** `src/shared/lateral.js` (role 5 section only), `CHANGELOG.md`
+- **Heads up:** Override mode is unchanged, so all 90 `check.js` checks still pass, including
+  Kevin's custom wall layout ones (run in the browser; Node not installed here). Fixed factors with no input box yet: Kd = 0.85, G = 0.85
+  (rigid), Kzt = 1 (flat site), Ke = 1 (sea level); they're real variables in `LP.asce7Wind`, so
+  input boxes can be wired in later (role 1). Forces are strength level W; the calc says ASD uses
+  0.6W. Windward pressure is read at each level's elevation and applied over its tributary height.
+  Not included: torsional wind cases 2-4 (Fig. 27.3-8), parapets, roof uplift, flexible-building
+  gust factor. Hand checks, exposure C, 105 mph: app default building, X, V = 14.24 + 14.86 + 7.86
+  = 36.96 k (Y: 76.6 k; exposure B 26.88 k with the 16 psf minimum governing at Level 2; D 44.11 k);
+  test   building (60 x 50, 2 @ 14 ft), X, 24.76 k. Role 6: good numbers for ASCE 7 wind check cases.
+
+### 2026-10-27 — Configure shear wall gridlines and lengths
+**Who:** Kevin (+ Copilot SDK in VS Code) · **Branch:** feature/shear-wall-layout
+
+- **What changed:** Added a custom shear-wall layout editor to assign walls to X/Y gridlines and
+  specify each wall's start position and length. Up to five non-overlapping walls are allowed on
+  each gridline, and placements are checked against the selected line's dimensions.
+- **Why:** Place lateral systems on chosen frame lines and control their locations and lengths.
+- **Files:** `src/frontend/index.html`, `src/frontend/app.js`, `tests/shared/check.js`,
+  `docs/load-path-explorer.md`, `CHANGELOG.md`
+- **Heads up:** Existing symmetric and eccentric wall presets remain unchanged.
+
+### 2026-10-27 — Make member detail sections collapsible
+**Who:** Kevin (+ Copilot SDK in VS Code) · **Branch:** feature/collapsible-details
+
+- **What changed:** Made the member details panel's load-source, load-destination and calculation
+  sections native expandable dropdowns, open by default, with clear disclosure arrows and guidance.
+- **Why:** Let users collapse subcategories to focus on the member information they need.
+- **Files:** `src/frontend/explain.js`, `src/frontend/index.html`, `docs/load-path-explorer.md`,
+  `CHANGELOG.md`
+- **Heads up:** Uses native accessible disclosure controls; no dependencies added.
+
+### 2026-10-27 — ASCE 7 seismic story forces (Input mode: ASCE 7)
+**Who:** Josh (+ Claude Code) · **Branch:** feature/lateral-loads
+
+- **What changed:** In ASCE 7 input mode, `LP.storyForces` now calculates the seismic Cs from the
+  panel inputs instead of the typed Cs, via new `LP.seismicCs` and `LP.SYSTEMS` in
+  `src/shared/lateral.js`: R from the lateral system (Table 12.2-1, building frame values: special
+  RC 6, ordinary RC 5, special masonry 5.5), Ie from risk category, Ta = 0.02 hn^0.75, Cs = SDS /
+  (R/Ie) with the SD1 / (T R/Ie) upper and 0.044 SDS Ie / 0.01 lower limits, and k from T for the
+  vertical distribution. Every step shows in the story force calc. Sets `LP.asce7Ready = true`.
+- **Why:** replaces the hand-typed Cs with the code calculation, using the inputs role 1 added.
+  Building frame R values because the steel frame carries all gravity load and the walls only
+  lateral.
+- **Files:** `src/shared/lateral.js` (role 5 section only), `CHANGELOG.md`
+- **Heads up:** Override mode is unchanged, so all 85 `check.js` checks still pass, including
+  Zack's new gravity, self-weight and live load reduction ones (run in the browser; Node not installed here). Seismic forces in ASCE 7 mode are strength level (E); the calc
+  says ASD uses 0.7E. Uses Ta, not Cu Ta. Not included yet: the 0.5 S1 / (R/Ie) minimum (no S1
+  input), seismic design category limits on system choice, TL. **Wind in ASCE 7 mode is not built
+  yet** and shows a warning while still using the Override psf. Hand checks: test building (2 @ 14
+  ft, SDS 1.0, special RC, cat II) V = 0.167 x 330 = 55.0 k; app default building V = 142.5 k.
+  Role 6: an ASCE 7 seismic check case would be good with those numbers.
+
+### 2026-10-27 — Optional floor live load reduction (ASCE 7-22 4.7)
+**Who:** Zack (+ Claude Code) · **Branch:** feature/live-load-reduction
+
+- **What changed:** With `inputs.liveLoadReduction = true`, beams, girders, columns and footings
+  reduce their own floor live load: L = Lo (0.25 + 15 / sqrt(K_LL AT)) when K_LL AT ≥ 400 sq ft,
+  limited to 0.50 Lo (one floor) or 0.40 Lo (2+ floors). K_LL is 4 for columns and footings and
+  2 for beams and girders. Lo over 100 psf gets only the 20% reduction for 2+ floors. AT comes
+  from the `tribArea` rectangles, counting floors only. Each member gets `liveReduction = { KLL,
+  AT, floors, factor, removed }`, and the panel shows the reduction steps. New
+  `LP.liveReductionFactor`. Added 14 hand-calc checks (at 0.01% tolerance), and the
+  load-equals-area check now covers reduced members too (85 checks, all passing).
+- **Why:** real column and footing design uses reduced live load; leaving it out overstates
+  multi-story column loads by a lot (column B2 in the default 3-story building: 232.5 k vs 190.8 k).
+- **Files:** `src/shared/gravity.js`, `tests/shared/check.js`, `docs/load-path-explorer.md`,
+  `CHANGELOG.md`
+- **Heads up:** **Off by default, so no numbers change.** **Ask for Nick (role 1):** a "Live
+  load reduction (ASCE 7 4.7)" checkbox under Gravity loads, read into `inputs.liveLoadReduction`.
+  Path values stay unreduced, because each member reduces its own live load (that's how the code
+  works), so the load on a member can be less than the sum of the paths into it when this is on.
+  Not covered: deck (one-way slab area cap), roof live reduction (4.8), and assembly or parking
+  occupancies.
+
+### 2026-10-27 — Make member detail sections collapsible
+**Who:** Kevin (+ Copilot SDK in VS Code) · **Branch:** feature/collapsible-details
+
+- **What changed:** Made the member details panel's load-source, load-destination and calculation
+  sections native expandable dropdowns, open by default, with clear disclosure arrows and guidance.
+- **Why:** Let users collapse subcategories to focus on the member information they need.
+- **Files:** `src/frontend/explain.js`, `src/frontend/index.html`, `docs/load-path-explorer.md`,
+  `CHANGELOG.md`
+- **Heads up:** Uses native accessible disclosure controls; no dependencies added.
+### 2026-10-27 — Add gridline elevation views
+**Who:** Kevin (+ Copilot SDK in VS Code) · **Branch:** feature/named-gridlines
+
+- **What changed:** Added an Elevation camera action: choose it, then click a gridline to isolate
+  and frame that vertical model plane. It switches to lateral mode and shows story wall shears and
+  base uplift labels. Gridline renaming and show/hide remain available outside elevation mode.
+- **Why:** Inspect a specific lateral frame in elevation and see its reactions.
+- **Files:** `src/frontend/scene.js`, `src/frontend/index.html`, `src/frontend/app.js`,
+  `src/frontend/overlay.js`, `docs/load-path-explorer.md`, `CHANGELOG.md`
+- **Heads up:** The section includes members lying on the selected plane; imported models still do
+  not have calculated lateral results.
+
+### 2026-10-27 — Optional member self-weight in the gravity analysis
+**Who:** Zack (+ Claude Code) · **Branch:** feature/self-weight
+
+- **What changed:** `LP.runGravity` can add member self-weight, read from `inputs.selfWeight =
+  { on, beam, girder, column }` in plf. Beams and girders carry it as a uniform load, and each
+  column adds its own story's weight at its bottom. It's off by default; the assumed weights
+  (`LP.SELF_WEIGHT_DEFAULTS`: 30 / 60 / 50 plf) are roughly a W16x26 filler beam, W24x55 girder
+  and W10x49 column. Each member's `selfWeight` field says how much of its load is self-weight,
+  and the panel shows the self-weight line in the calc when it's on. Added 9 hand-calc checks,
+  and the tributary-area check now covers self-weight too (58 checks, all passing).
+- **Why:** column and footing loads are low without the framing's own weight, and seeing where
+  the framing's own weight goes is part of understanding the load path.
+- **Files:** `src/shared/gravity.js`, `tests/shared/check.js`, `docs/load-path-explorer.md`,
+  `CHANGELOG.md`
+- **Heads up:** **Off by default, so no numbers change.** **Ask for Nick (role 1):** add a "Member
+  self-weight" checkbox under Gravity loads, plus beam / girder / column plf boxes, read into
+  `inputs.selfWeight`. Spec in `docs/load-path-explorer.md`. The deck's own weight isn't added
+  because it's already in the dead psf. Lateral analysis doesn't read gravity results, so seismic
+  weight is unchanged.
+
+### 2026-10-27 — Make collector arrows visible
+**Who:** Nick (+ Claude Code) · **Branch:** fix/collector-arrows
+
+- **What changed:** In the lateral arrows' collector stage, the arrows now ride 3.5 ft above the edge
+  beams and draw on top of them, and they are sized against the largest collector force at that level
+  (with a visible minimum) instead of the wall base shear.
+- **Why:** they were hidden inside the edge beam / collector members, and on the shared scale a 1.1 k
+  collector next to a 16.5 k base shear shrank to specks.
+- **Files:** `src/frontend/lateral-arrows.js`, `CHANGELOG.md`
+- **Heads up:** collector arrow size now compares collectors with each other, not with the walls; the
+  labels carry the actual forces. All collector arrows now point with the load: compression segments
+  push into the wall (growing toward it), tension segments pull it along (shrinking away from it).
+### 2026-10-27 — Gravity results now include each member's tributary area
+**Who:** Zack (+ Claude Code) · **Branch:** feature/gravity
+
+- **What changed:** `LP.runGravity` now puts `tribArea = { rects, area }` on every deck, beam,
+  girder, column and footing: the plan rectangles the member's load comes from. Columns list one
+  rectangle per level they support; footings list all levels. Column calcs in the panel now start
+  with "Tributary area at Level 2 = 30 ft x 25 ft = 750 sq ft". Added 9 checks, including one that
+  every member in four test buildings carries exactly pressure x its tributary area.
+- **Why:** so the 3D view can shade the tributary area of the selected member, the clearest way
+  to show where a member's load comes from.
+- **Files:** `src/shared/gravity.js`, `tests/shared/check.js`, `docs/load-path-explorer.md`,
+  `CHANGELOG.md`
+- **Heads up:** **Roles 2 and 3:** the data is ready, nothing draws it yet. The field is
+  documented in `docs/load-path-explorer.md`. Draw each rectangle as a flat patch at its `z`
+  with `LP.toWorld`. It's named `tribArea` because beams already use `trib` for the tributary
+  *width* (a number). No change to load values; all 49 checks pass. Merged the latest `dev`
+  (Sam's IFC import) into this branch first. Imported IFC models still aren't analysed, so they
+  have no `tribArea`.
+
+### 2026-10-27 — Add gravity check cases: edge and corner columns, unequal bays, one-bay buildings
+**Who:** Zack (+ Claude Code) · **Branch:** feature/gravity
+
+- **What changed:** Added 19 hand-calc checks to the gravity part of `tests/shared/check.js`: edge
+  and corner columns and footings in the existing 2 x 2 building; a building with unequal bays
+  (X 20 + 40 ft, Y 24 + 30 ft); a one-bay, two-story building; and a one-bay, one-story building
+  with no filler beams. Each case also checks that the footings add up to the total load.
+- **Why:** the original checks covered the center column and one corner. Edge columns, unequal
+  bays and tiny buildings are where tributary widths and girder reactions go wrong, so these guard
+  every later change to `gravity.js` (tributary shading, self-weight).
+- **Files:** `tests/shared/check.js`, `CHANGELOG.md`
+- **Heads up:** no change to `gravity.js`; all 40 checks pass. The new cases build their own models
+  and run gravity only, so they don't depend on the lateral wall layout. `node tests/shared/check.js`
+  before merging, as always.
+
+### 2026-10-27 — Draw lateral load as staged arrows instead of dots
+**Who:** Nick (+ Claude Code) · **Branch:** feature/lateral-arrows
+
+- **What changed:** In lateral mode the flow dots are replaced by arrows that follow one level's load
+  down in five stages, one at a time, with a caption bar at the bottom of the 3D view (click a stage to
+  jump to it): (1) wind as an even grid of arrows on the face, or seismic as a grid on the floor;
+  (2) arrows that enter the diaphragm heading downwind and arc diagonally onto each wall line, landing
+  evenly along it; (3) collector forces growing toward the wall, labeled compression / tension;
+  (4) shear down the walls story by story, as a diagonal strut or as edge shear flow (View → Wall
+  arrows); (5) base shear plus uplift and compression at the wall ends. Gravity mode keeps its dots.
+- **Why:** dots didn't say which way load pushes or how it gets from the floor into the walls. The
+  design was iterated with Nick in a standalone prototype first.
+- **Files:** `src/frontend/lateral-arrows.js` (new), `src/frontend/overlay.js`,
+  `src/frontend/index.html`, `src/frontend/app.js`, `docs/load-path-explorer.md`, `CHANGELOG.md`
+- **Heads up:** the arrows follow the same level as the diagrams (the roof, or the clicked member's
+  level). All arrows share one size scale based on the largest base shear, except stages 1–2, whose
+  per-foot arrows are drawn larger than their true share so they're visible. Wall and foundation
+  arrows draw on top of the walls and footings. Imported models get no arrows (no analysis yet).
+
+### 2026-10-27 — Diaphragm diagram: include the accidental torsion mass shift
+**Who:** Josh (+ Claude Code), approved by Nick (role 3 owner) · **Branch:** feature/lateral-loads
+
+- **What changed:** `LP.diaphragmDiagram` draws the story load as a linearly varying (trapezoidal)
+  load with the same total and its centroid moved by `b.rigid.ec - b.rigid.e`, instead of a uniform
+  load. `w1 = 12 F shift / depth^3` is the slope.
+- **Why:** with accidental torsion the wall forces assume the mass sits 5% off center, but the
+  diagram still loaded the floor at its center, so the moment missed closing by exactly F x e_acc
+  (e.g. 47 k-ft at Level 2 of the test building).
+- **Files:** `src/shared/diagrams.js`, `CHANGELOG.md`
+- **Heads up:** no change for wind, flexible diaphragms or torsion off (`shift = 0`). Seismic + rigid
+  diagrams now close in X and Y for symmetric and eccentric layouts; all 30 `check.js` checks pass
+  (run in the browser, Node not installed here). Role 3 still owns this file; this was a one-off
+  agreed with Nick.
+
+### 2026-10-27 — Add 5% accidental torsion to the rigid diaphragm (seismic)
+**Who:** Josh (+ Claude Code) · **Branch:** feature/lateral-loads
+
+- **What changed:** `LP.distribute` now adds ASCE 7 12.8.4.2 accidental torsion for seismic load on
+  a rigid diaphragm: the mass is shifted ±5% of the building width across the load. One shift is
+  used per story, the one that loads the heaviest wall; the opposite shift mirrors it onto the
+  walls on the other side. The wall calc line shows it, e.g.
+  `e = 0 + 2.5 accidental = 2.5 ft; design each wall for the worse of +/-5%`. `b.rigid` gains
+  `eAcc` and `ec` (eccentricity used); `b.rigid.e` is unchanged.
+- **Why:** a symmetric building previously had zero torsion on a rigid diaphragm, which ASCE 7
+  doesn't allow for seismic design. One shift per story (not a worst case per wall) keeps wall
+  forces summing to the story force, so the diaphragm diagrams in `diagrams.js` still close.
+- **Files:** `src/shared/lateral.js` (`LP.distribute` rigid branch only), `CHANGELOG.md`
+- **Heads up:** On by default; `inputs.lateral.accidentalTorsion: false` turns it off (no checkbox
+  yet, see `docs/role5-inputs.md`). Wind and flexible diaphragms are unchanged. Walls on the light
+  side show the shift that reduces their force; the calc line says to design for the worse of ±5%.
+  All 30 checks in `check.js` pass when run in the browser (Node not installed here, so `check.js`
+  itself was not run). Role 6: a seismic + rigid check case would be good; test building, Level 2:
+  direct 9.43 k + torsion 0.43 k, walls 9.86 / 9.00 k, sum 18.86 k = F.
+
+### 2026-10-27 — Add role 5 lateral input list for role 1
+**Who:** Josh (+ Claude Code) · **Branch:** feature/lateral-loads
+
+- **What changed:** Added `docs/role5-inputs.md`: the ASCE 7-22 inputs role 5 needs (risk
+  category, SDS, SD1, lateral system, wind speed, exposure, accidental torsion), with defaults,
+  proposed `inputs.lateral` keys, and MVP / nice-to-have / stretch priority.
+- **Why:** the new input boxes live in role 1's files (`index.html`, `app.js`, `model.js`), so
+  role 1 needs the list before role 5's seismic and wind math can be wired up.
+- **Files:** `docs/role5-inputs.md`, `CHANGELOG.md`
+- **Heads up:** proposal only, no code changed. Nick: the "Ask for role 1" table at the top is the
+  part you need. The current Cs and Wind (psf) boxes stay as an Override mode.
+
+### 2026-10-27 — Add ASCE 7 lateral inputs to the panel (role 5's ask)
+**Who:** Nick (+ Claude Code) · **Branch:** feature/lateral-inputs
+
+- **What changed:** The Lateral loads panel has an Input mode toggle. **Override** (default) shows
+  the existing Wind (psf) and Seismic Cs boxes. **ASCE 7** shows risk category, SDS, SD1, lateral
+  system, wind speed V and exposure. An Accidental torsion checkbox applies to both. All of them
+  land in `inputs.lateral` under the keys from Josh's `docs/role5-inputs.md`.
+- **Why:** role 5 is replacing the hand-typed Cs and psf with ASCE 7 calculations and needs these
+  inputs; Override keeps the simple teaching version.
+- **Files:** `src/shared/model.js`, `src/frontend/index.html`, `src/frontend/app.js`,
+  `docs/load-path-explorer.md`, `CHANGELOG.md`
+- **Heads up:** **For role 5:** the default is `mode: 'override'`, and a missing `mode` means
+  override too, so today's numbers and the hand-calc tests don't change. Set `LP.asce7Ready = true`
+  in `lateral.js` once `storyForces` reads the ASCE 7 inputs; until then, ASCE 7 mode shows a
+  warning and uses the override values. System keys: `specialRCWall`, `ordinaryRCWall`,
+  `specialMasonryWall`. `accidentalTorsion` does nothing on `dev` until role 5's torsion change merges.
+
+### 2026-10-27 — Fix overlapping labels in plan view
+**Who:** Nick (+ Claude Code) · **Branch:** fix/plan-label-overlap
+
+- **What changed:** Story force arrows now meet the building mid-bay instead of on a grid line, and
+  their labels sit together just past the longest arrow, one row per level. Chord labels moved to
+  the far corners of the diaphragm (now "Max chord tension / compression"), and the diaphragm shear
+  and moment titles moved past the far edge, one row each.
+- **Why:** in plan view the chord, story force and diagram labels sat on top of each other and on
+  the grid bubbles, in both load directions.
+- **Files:** `src/frontend/overlay.js`, `CHANGELOG.md`
+- **Heads up:** the flow dots for story forces follow the moved arrows (`storyFace`); the analysis
+  is unchanged, so `lateral.js` paths still record the windward point at mid-face.
+
+### 2026-10-27 — Add camera view presets and grid bubbles
+**Who:** Nick (+ Claude Code) · **Branch:** feature/camera-views
+
+- **What changed:** 3D / Plan / Front / Side buttons at the top right of the 3D view glide the
+  camera to each preset. Plan and elevations use a narrow field of view so they read like drawings.
+  Dashed grid lines and bubbles (1, 2, 3... along X; A, B, C... along Y) are drawn on the ground.
+- **Why:** plan view makes the diaphragm diagrams (PR #2) easy to read, and grid bubbles let people
+  match member labels like "Column B2" to the model.
+- **Files:** `src/frontend/scene.js`, `docs/load-path-explorer.md`, `CHANGELOG.md`
+- **Heads up:** the view buttons are created by `scene.js` itself, so `index.html` and `app.js` are
+  unchanged. Branched from `dev` before PR #2 merged; if both PRs edit the top of this log, keep both
+  entries.
+
+### 2026-10-27 — Draw diaphragm shear, moment, chord and collector diagrams in 3D
+**Who:** Nick (+ Claude Code) · **Branch:** feature/diaphragm-diagrams
+
+- **What changed:** In lateral mode, the diaphragm's shear (blue) and moment (orange) diagrams are
+  drawn flat on the floor, chord tension and compression are labeled at the point of max moment,
+  and collector force is drawn as an upright fence along each wall line. They show on the roof, or
+  on the level of the clicked member. New "Show diagrams" toggle under View.
+- **Why:** the diaphragm-as-a-flat-beam idea is the part of lateral load path engineers find
+  hardest; switching flexible to rigid now visibly changes the diagrams.
+- **Files:** `src/shared/diagrams.js` (new), `src/frontend/overlay.js`, `src/frontend/index.html`,
+  `src/frontend/app.js`, `tests/shared/check.js`, `docs/load-path-explorer.md`, `CHANGELOG.md`
+- **Heads up:** diagrams are built by statics from the wall-line forces the analysis already
+  produces (10 new checks, all 30 passing), so they don't touch `lateral.js`. With a rigid diaphragm
+  and torsion, the perpendicular walls' couple is included so the moment closes. **For role 6:**
+  `runLateral` still computes chord force from simple spans between wall lines, so in the rigid
+  eccentric case the chord member says 0.45 k while the diagram says 0.7 k at the roof. Using
+  `LP.diaphragmDiagram(b, li).Mext / d` there would make them agree.
+
+### 2026-10-27 — Repo renamed to Team-17-Hackathon-NCSEA
+**Who:** Sam (+ Claude Code) · **Branch:** dev
+
+- **What changed:** The GitHub repository was renamed from `Team-24-Hackathon-NCSEA` to
+  `Team-17-Hackathon-NCSEA`. Updated the clone URL and folder names in `README.md` and
+  `docs/load-path-explorer.md`.
+- **Why:** The repo name was the last place still carrying the wrong team number.
+- **Files:** `README.md`, `docs/load-path-explorer.md`, `CHANGELOG.md`
+- **Heads up:** **Everyone with an existing clone should repoint their remote**, or pushes keep
+  going through GitHub's redirect:
+  `git remote set-url origin https://github.com/THELaw688/Team-17-Hackathon-NCSEA.git`
+  Your local folder can keep its old name; only the remote URL matters. New clones get it right.
+
+### 2026-10-27 — Add IFC drop zone and import
+**Who:** Sam (+ Claude Code) · **Branch:** dev
+
+- **What changed:** A drop zone at the top of the controls panel takes a dragged or picked `.ifc`
+  file. `src/shared/import-ifc.js` parses it with web-ifc (WASM, from CDN), reads columns, beams,
+  members, slabs, walls, footings and plates, and returns neutral elements;
+  `src/frontend/dropzone.js` handles the UI and reports what was found. Imported models are built
+  with `LP.modelFromElements` and drawn. Added `LP.detectLengthScale`.
+- **Why:** real Revit models are the point — a teaching tool that only draws a generated grid can't
+  be pointed at a building anyone actually designed.
+- **Files:** `src/shared/import-ifc.js`, `src/frontend/dropzone.js`, `src/shared/elements.js`,
+  `src/frontend/index.html`, `src/frontend/app.js`, `tests/shared/check-import.js`, `CHANGELOG.md`
+- **Heads up:** **An imported model draws but is not analysed.** `gravity.js` and `lateral.js`
+  address members by generated ids (`COL-B2-L2`) and read `b.beamXs`, neither of which an imported
+  building has — teaching them to read imported geometry is role 4 and role 6 work. The panel says
+  so rather than showing a blank load path. web-ifc is pinned at **0.0.78** and loaded as the IIFE
+  build (`web-ifc-api-iife.js`) injected on first import — ~6 MB, so not loaded on page open — and
+  `SetWasmPath` must pass `absolute = true` or the WASM fetch 404s. Units are detected
+  from implied storey heights rather than the file's declaration, because a model 3.28x too big
+  draws fine and is silently wrong; the panel shows overall size so a human can check. Element
+  geometry comes from world-space bounding boxes, so a sloped or curved member becomes its box.
+  `.e2k` is routed but not implemented yet.
+
+### 2026-10-27 — Spec and foundation for IFC / ETABS import and in-program editing
+**Who:** Sam (+ Claude Code) · **Branch:** dev
+
+- **What changed:** Added `docs/import-and-editing.md` (the design for pulling models from Revit IFC
+  and ETABS, and for editing the model in the app) and `src/shared/elements.js`, the neutral element
+  layer every source feeds: `LP.element`, `LP.cluster1d`, `LP.inferGrid`, `LP.snap`,
+  `LP.classifySpan`, `LP.modelFromElements`. Checks in `tests/shared/check-import.js`.
+- **Why:** `LP.buildModel` *generates* a building from a regular grid, so every member's position is
+  known by construction — which is exactly what the tributary-area analysis depends on. An imported
+  model is *given* as arbitrary geometry and fits none of that. The element layer lets any source
+  produce a building without changing `gravity.js`, `lateral.js`, `scene.js` or `explain.js`: grid
+  lines are recovered by clustering real column positions, and a regularity score decides whether
+  the load path can honestly be calculated or the model is drawn only.
+- **Files:** `docs/import-and-editing.md`, `src/shared/elements.js`, `tests/shared/check-import.js`,
+  `CHANGELOG.md`
+- **Heads up:** The importers themselves (`import-ifc.js`, `import-etabs.js`) and the editor UI
+  (`editor.js`) are **not written yet** — the spec says what each must produce. Decisions taken:
+  web-ifc WASM from CDN for IFC, `.e2k` text for ETABS, grid inference over a general frame solver.
+  **IFC/ETABS files are parsed in memory and discarded — never uploaded, never written to disk or
+  browser storage;** the derived model stays in memory for the session only. Run
+  `node tests/shared/check-import.js` alongside the existing `check.js` before merging.
+
+### 2026-10-27 — Add load path explorer: 3D app, gravity + lateral analysis, hand-calc checks
+**Who:** Nick (+ Claude Code) · **Branch:** feature/load-path-explorer
+
+- **What changed:** First working version of the tool. A 3D browser app (Three.js) builds a steel
+  building from grid inputs, runs gravity analysis (deck, beams, girders, columns, footings) and
+  lateral analysis (wind or seismic story forces, flexible or rigid diaphragm with torsion, chords,
+  collectors, shear walls, overturning), colors members by force, animates load flow, and explains
+  any clicked member: where its load comes from, where it goes, and the calculation.
+- **Why:** gives all 7 people a running app and one shared building data format to build on in
+  parallel, instead of starting from a blank repo at kickoff.
+- **Files:** `src/frontend/` (`index.html`, `app.js`, `scene.js`, `overlay.js`, `explain.js`),
+  `src/shared/` (`model.js`, `gravity.js`, `lateral.js`), `tests/shared/check.js`,
+  `docs/load-path-explorer.md`, `docs/decisions.md`, `CHANGELOG.md`
+- **Heads up:** picks the stack (plain JS + Three.js, no build step, no backend); see
+  `docs/decisions.md`, raise it in chat if you disagree. Run: `python -m http.server 8765` from the
+  repo root, open `/src/frontend/`. Run `node tests/shared/check.js` before merging analysis changes
+  (20 hand-calc checks, all passing). Role-by-role file ownership and next tasks are in
+  `docs/load-path-explorer.md`. This branch is based on `main` because `dev` was 8 commits behind
+  it, so merging it into `dev` also brings `dev` up to date.
 
 ### 2026-10-27 — Add automated staleness guards
 **Who:** Sam (+ Claude Code) · **Branch:** main
