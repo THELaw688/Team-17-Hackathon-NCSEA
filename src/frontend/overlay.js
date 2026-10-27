@@ -10,22 +10,20 @@
       this.view = view;
       this.group = new THREE.Group();
       view.scene.add(this.group);
-      this.particles = [];
       this.pickables = [];
       this.showFlow = true;
       this.showDiagrams = true;
       this.wallStyle = 'strut';   // lateral arrows in the walls: 'strut' | 'edges'
-      this.dot = new THREE.SphereGeometry(1, 10, 8);
       this.lateralArrows = new LP.LateralArrows(view);
+      this.gravityFlow = new LP.GravityFlow(view);
     }
 
     clear() {
       this.group.traverse(o => {
-        if (o.geometry && o.geometry !== this.dot) o.geometry.dispose();
+        if (o.geometry) o.geometry.dispose();
         if (o.material) { if (o.material.map) o.material.map.dispose(); o.material.dispose(); }
       });
       this.group.clear();
-      this.particles = [];
       this.pickables = [];
     }
 
@@ -50,12 +48,13 @@
     }
 
     /**
-     * Redraw arrows, labels and flow dots.
-     * @param {object} traced result of LP.trace, or null to animate every path in the mode
+     * Redraw arrows, labels and the load flow animation.
+     * @param {object} traced result of LP.trace, or null when nothing is selected
      */
     update(b, mode, traced, selected, elevation) {
       this.clear();
       this.lateralArrows.clear();
+      this.gravityFlow.clear();
       const k = v => `${LP.round(v, 1)} k`;
       const res = id => b.members[id].results[mode];
 
@@ -113,24 +112,12 @@
         return;
       }
 
-      // Gravity load flow: one moving dot per path, from the member giving load to the connection point.
-      const paths = (traced ? traced.paths : b.paths.filter(p => p.mode === mode && Math.abs(p.value) > 1e-9)).slice(0, 1200);
-      const maxV = Math.max(...paths.map(p => Math.abs(p.value)), 1e-9);
-      paths.forEach((p, i) => {
-        const from = b.members[p.from];
-        let start = LP.center(from), end = p.at;
-        if (from.type === 'storyForce') {
-          const dir = b.inputs.lateral.dir;
-          end = this.storyFace(b, from.level);
-          start = { x: end.x - (dir === 'x' ? 14 : 0), y: end.y - (dir === 'y' ? 14 : 0), z: end.z };
-        }
-        const t = Math.abs(p.value) / maxV;
-        const dot = new THREE.Mesh(this.dot, new THREE.MeshBasicMaterial({ color: LP.forceColor(t), depthTest: false, transparent: true }));
-        dot.scale.setScalar(0.3 + 0.6 * Math.sqrt(t));
-        dot.renderOrder = 5;
-        this.group.add(dot);
-        this.particles.push({ dot, a: LP.toWorld(start), b: LP.toWorld(end), offset: (i * 0.618) % 1 });
-      });
+      // Gravity load is drawn as glowing strips following one level down (gravity-flow.js): the
+      // roof, or the clicked member's level.
+      if (!b.fromImport) {
+        const m = selected && b.members[selected];
+        this.gravityFlow.build(b, m && m.level !== undefined ? m.level : b.levels.length - 1);
+      }
     }
 
     elevationReactions(b, elevation, k) {
@@ -228,8 +215,8 @@
     }
 
     tick(time) {
-      this.particles.forEach(p => p.dot.position.lerpVectors(p.a, p.b, (time / 1000 * 0.45 + p.offset) % 1));
       this.lateralArrows.tick(time);
+      this.gravityFlow.tick(time);
     }
   };
 })(typeof window !== 'undefined' ? window : globalThis);

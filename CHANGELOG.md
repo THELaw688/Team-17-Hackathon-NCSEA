@@ -82,6 +82,55 @@ how we avoid two people rewriting the same file.
 - **Heads up:** Steel-frame forces use the existing simplified line-length distribution; this is
   schematic, not frame analysis or design.
 
+### 2026-10-27 — Draw gravity load as glowing strips instead of dots
+**Who:** Zack (+ Claude Code), for role 3 review · **Branch:** feature/gravity-glow
+
+- **What changed:** In gravity mode the flow dots are replaced by a staged glow for one level (the
+  roof, or the clicked member's level), with a caption bar and stage chips like the lateral arrows:
+  1. Deck: a glowing zigzag (the ribbed deck profile), as long as the bay, travels from mid-span
+     out to each beam.
+  2. Beams: each beam glows along its length, then splits at mid-span and slides to both ends.
+  3. Girders: the same, into the columns.
+  4. Columns: a pulse runs down to grade.
+  5. Footings: they pulse.
+
+  Brightness scales with load within each member type, and captions quote numbers from the
+  analysis. New `src/frontend/gravity-flow.js` (`LP.GravityFlow`, same shape as `LP.LateralArrows`).
+- **Why:** dots didn't show how load moves through a floor system: across the deck, along each
+  beam to its ends, then into girders and columns. The zigzag keeps the deck stage visually
+  different from the framing stages.
+- **Files:** `src/frontend/gravity-flow.js` (new), `src/frontend/overlay.js`,
+  `src/frontend/index.html`, `src/frontend/app.js` (panel text), `docs/load-path-explorer.md`,
+  `CHANGELOG.md`
+- **Heads up:** **This edits role 3's `overlay.js`** (Nick, please review): the gravity dot loop,
+  `particles` and the dot geometry are gone; the overlay now calls `gravityFlow.build` / `tick`
+  the way it calls `lateralArrows`. One script tag added to role 1's `index.html`, and the gravity
+  panel text in `app.js` now describes the glow instead of dots. Lateral mode is unchanged. The
+  earlier `test/gravity-flow` branch is superseded and can be deleted.
+
+### 2026-10-27 — ASCE 7 wind story forces (Input mode: ASCE 7)
+**Who:** Josh (+ Claude Code) · **Branch:** feature/lateral-loads
+
+- **What changed:** In ASCE 7 input mode, `LP.storyForces` calculates the wind pressure from wind
+  speed V and exposure instead of the typed psf, via new `LP.asce7Wind` and `LP.windKz` in
+  `src/shared/lateral.js`. ASCE 7-22 directional procedure for the MWFRS: Kz from Table 26.10-1
+  (exposure B/C/D), qz = 0.00256 Kz Kzt Ke V^2, windward p = qz Kd G (0.8) at each level's
+  elevation, leeward p = qh Kd G |Cp| with Cp from L/B (Fig. 27.3-1), net = windward + leeward with
+  the 16 psf minimum (27.1.5). Every factor and its ASCE 7 reference shows in the story force calc.
+  Removed the "ASCE 7 wind is not built yet" warning.
+- **Why:** replaces the hand-typed wind psf with the code calculation, using the wind speed and
+  exposure inputs role 1 added; completes role 5's ASCE 7 story forces (seismic merged in PR #13).
+- **Files:** `src/shared/lateral.js` (role 5 section only), `CHANGELOG.md`
+- **Heads up:** Override mode is unchanged, so all 90 `check.js` checks still pass, including
+  Kevin's custom wall layout ones (run in the browser; Node not installed here). Fixed factors with no input box yet: Kd = 0.85, G = 0.85
+  (rigid), Kzt = 1 (flat site), Ke = 1 (sea level); they're real variables in `LP.asce7Wind`, so
+  input boxes can be wired in later (role 1). Forces are strength level W; the calc says ASD uses
+  0.6W. Windward pressure is read at each level's elevation and applied over its tributary height.
+  Not included: torsional wind cases 2-4 (Fig. 27.3-8), parapets, roof uplift, flexible-building
+  gust factor. Hand checks, exposure C, 105 mph: app default building, X, V = 14.24 + 14.86 + 7.86
+  = 36.96 k (Y: 76.6 k; exposure B 26.88 k with the 16 psf minimum governing at Level 2; D 44.11 k);
+  test   building (60 x 50, 2 @ 14 ft), X, 24.76 k. Role 6: good numbers for ASCE 7 wind check cases.
+
 ### 2026-10-27 — Configure shear wall gridlines and lengths
 **Who:** Kevin (+ Copilot SDK in VS Code) · **Branch:** feature/shear-wall-layout
 

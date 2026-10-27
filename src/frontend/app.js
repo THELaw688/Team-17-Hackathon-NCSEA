@@ -275,7 +275,7 @@
       const total = Object.values(b.members).filter(m => m.type === 'footing').reduce((s, m) => s + m.results.gravity.value, 0);
       const V = b.levels.reduce((s, lv) => s + b.members[`LAT-${lv.tag}`].results.lateral.value, 0);
       const description = state.mode === 'gravity'
-        ? '<p>Load starts on the deck, goes to the filler beams, then the girders, then the columns, and ends at the footings. Moving dots show the flow; color shows force (blue light, red heavy).</p>'
+        ? '<p>Load starts on the deck, goes to the filler beams, then the girders, then the columns, and ends at the footings. Glowing strips show the flow, one stage at a time (brighter means more load); member color shows force (blue light, red heavy).</p>'
         : `<p>${b.inputs.lateral.type === 'wind' ? 'Wind' : 'Seismic'} load in the ${b.inputs.lateral.dir.toUpperCase()} direction goes into each floor diaphragm, along the collectors into the ${system.layoutPlural.toLowerCase()}, and down to the foundation.</p>
           <p>The floor acts like a deep beam lying flat. Its <b style="color:#2b7bba">shear</b> and <b style="color:#d9822b">moment</b> diagrams are drawn on the roof, or on the level of the member you click; <b style="color:#9b59b6">collector</b> force is drawn as a fence along each lateral-system line. Switch the diaphragm between flexible and rigid to see them change.</p>`;
       const systemNote = state.mode === 'lateral' && b.systemKind !== 'wall'
