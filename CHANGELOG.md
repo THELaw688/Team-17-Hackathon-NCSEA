@@ -52,7 +52,10 @@ markers, order the two by date, done. Never resolve a conflict here by discardin
 Add a line when you start something that will take a while, and remove it when you're done. This is
 how we avoid two people rewriting the same file.
 
-- _(nothing in progress)_
+- **Sam** — IFC / ETABS import and in-program editing. Spec in `docs/import-and-editing.md`.
+  Foundation `src/shared/elements.js` is done; `src/shared/import-ifc.js`,
+  `src/shared/import-etabs.js` and `src/frontend/editor.js` are not written yet — if you pick one
+  up, say so here first.
 
 ---
 
@@ -70,6 +73,64 @@ how we avoid two people rewriting the same file.
 - **Heads up:** the view buttons are created by `scene.js` itself, so `index.html` and `app.js` are
   unchanged. Branched from `dev` before PR #2 merged; if both PRs edit the top of this log, keep both
   entries.
+
+### 2026-10-27 — Repo renamed to Team-17-Hackathon-NCSEA
+**Who:** Sam (+ Claude Code) · **Branch:** dev
+
+- **What changed:** The GitHub repository was renamed from `Team-24-Hackathon-NCSEA` to
+  `Team-17-Hackathon-NCSEA`. Updated the clone URL and folder names in `README.md` and
+  `docs/load-path-explorer.md`.
+- **Why:** The repo name was the last place still carrying the wrong team number.
+- **Files:** `README.md`, `docs/load-path-explorer.md`, `CHANGELOG.md`
+- **Heads up:** **Everyone with an existing clone should repoint their remote**, or pushes keep
+  going through GitHub's redirect:
+  `git remote set-url origin https://github.com/THELaw688/Team-17-Hackathon-NCSEA.git`
+  Your local folder can keep its old name; only the remote URL matters. New clones get it right.
+
+### 2026-10-27 — Add IFC drop zone and import
+**Who:** Sam (+ Claude Code) · **Branch:** dev
+
+- **What changed:** A drop zone at the top of the controls panel takes a dragged or picked `.ifc`
+  file. `src/shared/import-ifc.js` parses it with web-ifc (WASM, from CDN), reads columns, beams,
+  members, slabs, walls, footings and plates, and returns neutral elements;
+  `src/frontend/dropzone.js` handles the UI and reports what was found. Imported models are built
+  with `LP.modelFromElements` and drawn. Added `LP.detectLengthScale`.
+- **Why:** real Revit models are the point — a teaching tool that only draws a generated grid can't
+  be pointed at a building anyone actually designed.
+- **Files:** `src/shared/import-ifc.js`, `src/frontend/dropzone.js`, `src/shared/elements.js`,
+  `src/frontend/index.html`, `src/frontend/app.js`, `tests/shared/check-import.js`, `CHANGELOG.md`
+- **Heads up:** **An imported model draws but is not analysed.** `gravity.js` and `lateral.js`
+  address members by generated ids (`COL-B2-L2`) and read `b.beamXs`, neither of which an imported
+  building has — teaching them to read imported geometry is role 4 and role 6 work. The panel says
+  so rather than showing a blank load path. web-ifc is pinned at **0.0.78** and loaded as the IIFE
+  build (`web-ifc-api-iife.js`) injected on first import — ~6 MB, so not loaded on page open — and
+  `SetWasmPath` must pass `absolute = true` or the WASM fetch 404s. Units are detected
+  from implied storey heights rather than the file's declaration, because a model 3.28x too big
+  draws fine and is silently wrong; the panel shows overall size so a human can check. Element
+  geometry comes from world-space bounding boxes, so a sloped or curved member becomes its box.
+  `.e2k` is routed but not implemented yet.
+
+### 2026-10-27 — Spec and foundation for IFC / ETABS import and in-program editing
+**Who:** Sam (+ Claude Code) · **Branch:** dev
+
+- **What changed:** Added `docs/import-and-editing.md` (the design for pulling models from Revit IFC
+  and ETABS, and for editing the model in the app) and `src/shared/elements.js`, the neutral element
+  layer every source feeds: `LP.element`, `LP.cluster1d`, `LP.inferGrid`, `LP.snap`,
+  `LP.classifySpan`, `LP.modelFromElements`. Checks in `tests/shared/check-import.js`.
+- **Why:** `LP.buildModel` *generates* a building from a regular grid, so every member's position is
+  known by construction — which is exactly what the tributary-area analysis depends on. An imported
+  model is *given* as arbitrary geometry and fits none of that. The element layer lets any source
+  produce a building without changing `gravity.js`, `lateral.js`, `scene.js` or `explain.js`: grid
+  lines are recovered by clustering real column positions, and a regularity score decides whether
+  the load path can honestly be calculated or the model is drawn only.
+- **Files:** `docs/import-and-editing.md`, `src/shared/elements.js`, `tests/shared/check-import.js`,
+  `CHANGELOG.md`
+- **Heads up:** The importers themselves (`import-ifc.js`, `import-etabs.js`) and the editor UI
+  (`editor.js`) are **not written yet** — the spec says what each must produce. Decisions taken:
+  web-ifc WASM from CDN for IFC, `.e2k` text for ETABS, grid inference over a general frame solver.
+  **IFC/ETABS files are parsed in memory and discarded — never uploaded, never written to disk or
+  browser storage;** the derived model stays in memory for the session only. Run
+  `node tests/shared/check-import.js` alongside the existing `check.js` before merging.
 
 ### 2026-10-27 — Add load path explorer: 3D app, gravity + lateral analysis, hand-calc checks
 **Who:** Nick (+ Claude Code) · **Branch:** feature/load-path-explorer
