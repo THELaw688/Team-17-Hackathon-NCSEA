@@ -88,6 +88,19 @@ how we avoid two people rewriting the same file.
   because it's already in the dead psf. Lateral analysis doesn't read gravity results, so seismic
   weight is unchanged.
 
+### 2026-10-27 — Make collector arrows visible
+**Who:** Nick (+ Claude Code) · **Branch:** fix/collector-arrows
+
+- **What changed:** In the lateral arrows' collector stage, the arrows now ride 3.5 ft above the edge
+  beams and draw on top of them, and they are sized against the largest collector force at that level
+  (with a visible minimum) instead of the wall base shear.
+- **Why:** they were hidden inside the edge beam / collector members, and on the shared scale a 1.1 k
+  collector next to a 16.5 k base shear shrank to specks.
+- **Files:** `src/frontend/lateral-arrows.js`, `CHANGELOG.md`
+- **Heads up:** collector arrow size now compares collectors with each other, not with the walls; the
+  labels carry the actual forces. All collector arrows now point with the load: compression segments
+  push into the wall (growing toward it), tension segments pull it along (shrinking away from it).
+
 ### 2026-10-27 — Gravity results now include each member's tributary area
 **Who:** Zack (+ Claude Code) · **Branch:** feature/gravity
 
