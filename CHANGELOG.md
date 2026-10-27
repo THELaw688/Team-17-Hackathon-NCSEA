@@ -58,6 +58,21 @@ how we avoid two people rewriting the same file.
 
 ## Log
 
+### 2026-10-27 — Rename team to Table 17, add one-command sync script
+**Who:** Sam (+ Claude Code) · **Branch:** main
+
+- **What changed:** Renamed the team from "Team 24" to "Table 17" in the README. Added
+  `scripts/sync.ps1`, which pulls, stages, commits, and pushes in a single command, and documented
+  it as the normal workflow.
+- **Why:** The team identifier was wrong. The script exists so the git sequence is stored in one
+  place — no more committing work and forgetting to push it, or pushing a branch while leaving the
+  tags behind.
+- **Files:** `README.md`, `CHANGELOG.md`, `scripts/sync.ps1`
+- **Heads up:** The repository is still *named* `Team-24-Hackathon-NCSEA` on GitHub — only a repo
+  admin can change that, and the clone URL changes with it. Usage:
+  `.\scripts\sync.ps1 -Message "your message"`, plus `-AllBranches -Tags` when you need them.
+  The script warns if a commit has no CHANGELOG entry but won't block you.
+
 ### 2026-10-27 — Add shared links file
 **Who:** Sam (+ Claude Code) · **Branch:** main
 

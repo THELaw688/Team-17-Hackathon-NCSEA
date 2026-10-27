@@ -1,6 +1,6 @@
-# Team 24 — NCSEA Hackathon
+# Table 17 — NCSEA Hackathon
 
-Shared repository for Team 24. This file is the contract for how we work: folder layout,
+Shared repository for Table 17. This file is the contract for how we work: folder layout,
 documentation standards, and collaboration rules. **Read it before your first commit.**
 
 📋 **[CHANGELOG.md](CHANGELOG.md) — read it at the start of every task, update it at the end.**
@@ -62,7 +62,8 @@ Team-24-Hackathon-NCSEA/
 │   └── shared/         # types, constants, helpers used by both sides
 ├── data/               # sample and seed data (small files only, no large datasets)
 ├── tests/              # automated tests, mirroring the src/ layout
-├── scripts/            # setup, build, and one-off utility scripts
+├── scripts/            # setup, build, and utility scripts
+│   └── sync.ps1        # pull + commit + push in one command
 └── presentation/       # demo materials — lives on the `presentation` branch
 
 ```
@@ -178,7 +179,26 @@ git pull
 Keep slides, the demo script, and screenshots in `presentation/` there. It merges into `main`
 near the end, or never — it exists so presentation work and code work stay out of each other's way.
 
-### The normal loop
+### The normal loop — one command
+
+Everything is bundled into one script so nothing gets committed but left unpushed:
+
+```powershell
+.\scripts\sync.ps1 -Message "Add span input validation to the load form"
+```
+
+That pulls, stages everything, commits, and pushes your current branch, in that order. It warns you
+if you forgot a CHANGELOG entry.
+
+Pushing branches or tags too:
+
+```powershell
+.\scripts\sync.ps1 -Message "Set up project branches" -AllBranches -Tags
+```
+
+### The same thing by hand
+
+If you'd rather run the commands yourself, or you're not on Windows:
 
 ```bash
 git pull                      # start from everyone else's latest work
@@ -188,7 +208,7 @@ git commit -m "Add span input validation to the load form"
 git push origin feature/load-calculator
 ```
 
-Then open a pull request into `dev` on GitHub.
+Either way, open a pull request into `dev` on GitHub afterwards.
 
 ### Commit messages
 
