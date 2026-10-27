@@ -36,6 +36,41 @@
     ] };
   };
 
+  // ---- Role 5: ASCE 7 wind pressure -------------------------------------------
+  // ASCE 7-22 Table 26.10-1 terrain constants: alpha, zg (ft).
+  const TERRAIN = { B: { alpha: 7.5, zg: 3280 }, C: { alpha: 9.8, zg: 2460 }, D: { alpha: 11.5, zg: 1935 } };
+  LP.windKz = (exposure, z) => 2.41 * (Math.max(z, 15) / TERRAIN[exposure].zg) ** (2 / TERRAIN[exposure].alpha);
+  // Fig. 27.3-1 leeward wall Cp from plan proportions L/B (L along the wind).
+  const leewardCp = LB => LB <= 1 ? -0.5 : LB <= 2 ? -0.5 + 0.2 * (LB - 1) : LB <= 4 ? -0.3 + 0.05 * (LB - 2) : -0.2;
+
+  /**
+   * Net MWFRS wind pressure (windward + leeward) by height, ASCE 7-22 directional procedure (27.3).
+   * @param {object} b building from LP.buildModel
+   * @returns {{at: function(number): {p: number, calc: string[]}, calc: string[]}} p in psf
+   */
+  LP.asce7Wind = function (b) {
+    // Kzt (flat site) and Ke (sea level) have no input boxes yet, so they stay 1.0.
+    const L = b.inputs.lateral, V = L.windSpeed, Kd = 0.85, G = 0.85, Cpw = 0.8, Kzt = 1, Ke = 1;
+    const h = b.levels[b.levels.length - 1].elev, Kh = LP.windKz(L.exposure, h);
+    const along = L.dir === 'x' ? b.Lx : b.Ly, across = L.dir === 'x' ? b.Ly : b.Lx, Cpl = leewardCp(along / across);
+    const q = z => 0.00256 * LP.windKz(L.exposure, z) * Kzt * Ke * V * V;
+    const qh = q(h), pl = qh * Kd * G * Math.abs(Cpl);
+    return {
+      calc: [
+        `ASCE 7-22 directional procedure (Ch. 27), exposure ${L.exposure}, V = ${V} mph`,
+        `Factors: Kd = ${Kd} (Table 26.6-1), G = ${G} (26.11, rigid), Kzt = ${Kzt} (26.8, flat site), Ke = ${Ke} (26.9, sea level), Cp windward = ${Cpw}`,
+        `Leeward: L/B = ${r(along)} / ${r(across)} = ${r(along / across, 2)} -> Cp = ${r(Cpl, 2)} (Fig. 27.3-1); qh = 0.00256 x Kh ${r(Kh, 3)} x Kzt ${Kzt} x Ke ${Ke} x ${V}^2 = ${r(qh)} psf; p = qh x Kd x G x |Cp| = ${r(pl)} psf`
+      ],
+      at: z => {
+        const Kz = LP.windKz(L.exposure, z), pw = q(z) * Kd * G * Cpw, p = Math.max(pw + pl, 16);
+        return { p, calc: [
+          `Windward at z = ${r(z)} ft: Kz = ${r(Kz, 3)} (Table 26.10-1), qz = 0.00256 x ${r(Kz, 3)} x ${Kzt} x ${Ke} x ${V}^2 = ${r(q(z))} psf; p = qz x ${Kd} x ${G} x ${Cpw} = ${r(pw)} psf`,
+          `Net p = ${r(pw)} + ${r(pl)} = ${r(pw + pl)} psf${pw + pl < 16 ? ' -> 16 psf minimum governs (27.1.5)' : ''} (strength level W; ASD uses 0.6W)`
+        ] };
+      }
+    };
+  };
+
   // ---- Role 5: story forces --------------------------------------------------
   /**
    * Story force at each level for b.inputs.lateral.
@@ -46,14 +81,15 @@
     const L = b.inputs.lateral, n = b.levels.length;
     const face = L.dir === 'x' ? b.Ly : b.Lx;
     if (L.type === 'wind') {
-      if (L.mode === 'asce7') b.warnings.push(`ASCE 7 wind is not built yet (role 5): wind still uses the Override pressure, ${L.windPressure} psf.`);
+      const w = L.mode === 'asce7' ? LP.asce7Wind(b) : null;
       return b.levels.map((lv, i) => {
         const hTrib = lv.height / 2 + (i < n - 1 ? b.levels[i + 1].height / 2 : 0);
-        const F = L.windPressure * face * hTrib / 1000;
+        const at = w && w.at(lv.elev), p = w ? at.p : L.windPressure;
+        const F = p * face * hTrib / 1000;
         return { F, calc: [
-          `Wind pressure p = ${L.windPressure} psf on a ${r(face)} ft wide face`,
+          ...(w ? [...w.calc, ...at.calc] : [`Wind pressure p = ${L.windPressure} psf on a ${r(face)} ft wide face`]),
           `Tributary height = ${r(hTrib)} ft (half the story below${i < n - 1 ? ' + half the story above' : ''})`,
-          `F = ${L.windPressure} x ${r(face)} x ${r(hTrib)} / 1000 = ${r(F)} kips`
+          `F = ${r(p)} x ${r(face)} x ${r(hTrib)} / 1000 = ${r(F)} kips`
         ] };
       });
     }
