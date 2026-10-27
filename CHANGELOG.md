@@ -81,8 +81,8 @@ how we avoid two people rewriting the same file.
 - **Why:** replaces the hand-typed wind psf with the code calculation, using the wind speed and
   exposure inputs role 1 added; completes role 5's ASCE 7 story forces (seismic merged in PR #13).
 - **Files:** `src/shared/lateral.js` (role 5 section only), `CHANGELOG.md`
-- **Heads up:** Override mode is unchanged, so all 85 `check.js` checks still pass (run in the
-  browser; Node not installed here). Fixed factors with no input box yet: Kd = 0.85, G = 0.85
+- **Heads up:** Override mode is unchanged, so all 90 `check.js` checks still pass, including
+  Kevin's custom wall layout ones (run in the browser; Node not installed here). Fixed factors with no input box yet: Kd = 0.85, G = 0.85
   (rigid), Kzt = 1 (flat site), Ke = 1 (sea level); they're real variables in `LP.asce7Wind`, so
   input boxes can be wired in later (role 1). Forces are strength level W; the calc says ASD uses
   0.6W. Windward pressure is read at each level's elevation and applied over its tributary height.
@@ -90,6 +90,27 @@ how we avoid two people rewriting the same file.
   gust factor. Hand checks, exposure C, 105 mph: app default building, X, V = 14.24 + 14.86 + 7.86
   = 36.96 k (Y: 76.6 k; exposure B 26.88 k with the 16 psf minimum governing at Level 2; D 44.11 k);
   test building (60 x 50, 2 @ 14 ft), X, 24.76 k. Role 6: good numbers for ASCE 7 wind check cases.
+
+### 2026-10-27 — Configure shear wall gridlines and lengths
+**Who:** Kevin (+ Copilot SDK in VS Code) · **Branch:** feature/shear-wall-layout
+
+- **What changed:** Added a custom shear-wall layout editor to assign walls to X/Y gridlines and
+  specify each wall's start position and length. Up to five non-overlapping walls are allowed on
+  each gridline, and placements are checked against the selected line's dimensions.
+- **Why:** Place lateral systems on chosen frame lines and control their locations and lengths.
+- **Files:** `src/frontend/index.html`, `src/frontend/app.js`, `tests/shared/check.js`,
+  `docs/load-path-explorer.md`, `CHANGELOG.md`
+- **Heads up:** Existing symmetric and eccentric wall presets remain unchanged.
+
+### 2026-10-27 — Make member detail sections collapsible
+**Who:** Kevin (+ Copilot SDK in VS Code) · **Branch:** feature/collapsible-details
+
+- **What changed:** Made the member details panel's load-source, load-destination and calculation
+  sections native expandable dropdowns, open by default, with clear disclosure arrows and guidance.
+- **Why:** Let users collapse subcategories to focus on the member information they need.
+- **Files:** `src/frontend/explain.js`, `src/frontend/index.html`, `docs/load-path-explorer.md`,
+  `CHANGELOG.md`
+- **Heads up:** Uses native accessible disclosure controls; no dependencies added.
 
 ### 2026-10-27 — ASCE 7 seismic story forces (Input mode: ASCE 7)
 **Who:** Josh (+ Claude Code) · **Branch:** feature/lateral-loads
@@ -134,6 +155,15 @@ how we avoid two people rewriting the same file.
   Not covered: deck (one-way slab area cap), roof live reduction (4.8), and assembly or parking
   occupancies.
 
+### 2026-10-27 — Make member detail sections collapsible
+**Who:** Kevin (+ Copilot SDK in VS Code) · **Branch:** feature/collapsible-details
+
+- **What changed:** Made the member details panel's load-source, load-destination and calculation
+  sections native expandable dropdowns, open by default, with clear disclosure arrows and guidance.
+- **Why:** Let users collapse subcategories to focus on the member information they need.
+- **Files:** `src/frontend/explain.js`, `src/frontend/index.html`, `docs/load-path-explorer.md`,
+  `CHANGELOG.md`
+- **Heads up:** Uses native accessible disclosure controls; no dependencies added.
 ### 2026-10-27 — Add gridline elevation views
 **Who:** Kevin (+ Copilot SDK in VS Code) · **Branch:** feature/named-gridlines
 
@@ -178,7 +208,6 @@ how we avoid two people rewriting the same file.
 - **Heads up:** collector arrow size now compares collectors with each other, not with the walls; the
   labels carry the actual forces. All collector arrows now point with the load: compression segments
   push into the wall (growing toward it), tension segments pull it along (shrinking away from it).
-
 ### 2026-10-27 — Gravity results now include each member's tributary area
 **Who:** Zack (+ Claude Code) · **Branch:** feature/gravity
 

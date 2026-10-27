@@ -22,13 +22,25 @@
   #controls input, #controls select { width: 110px; font: inherit; padding: 3px 6px; border: 1px solid var(--line); border-radius: 4px; }
   #controls input[type=checkbox] { width: auto; }
   #controls button { font: inherit; margin-top: 10px; padding: 5px 10px; border: 1px solid var(--line); border-radius: 4px; background: #fff; cursor: pointer; }
+  #wallRows { display: grid; gap: 6px; }
+  .wall-row { margin: 6px 0 0; padding: 6px 8px; border: 1px solid var(--line); border-radius: 4px; }
+  .wall-row legend { padding: 0 4px; color: var(--muted); font-size: 12px; }
+  #controls .wall-row label { display: grid; grid-template-columns: 1fr 110px; margin: 5px 0; font-size: 12px; }
+  #controls .wall-row select, #controls .wall-row input { min-width: 0; width: 100%; }
+  #addWall:disabled { color: var(--muted); cursor: not-allowed; }
   #view { position: relative; min-width: 0; }
   #legend { position: absolute; left: 12px; bottom: 12px; background: rgba(255,255,255,.9); padding: 6px 10px; border: 1px solid var(--line); border-radius: 6px; font-size: 12px; }
   #legend .bar { width: 160px; height: 8px; border-radius: 4px; background: linear-gradient(90deg, hsl(216,75%,50%), hsl(108,75%,50%), hsl(54,75%,50%), hsl(0,75%,50%)); margin: 4px 0; }
   #legend .ends { display: flex; justify-content: space-between; color: var(--muted); }
   aside { overflow-y: auto; padding: 12px 16px; border-left: 1px solid var(--line); }
   aside h2 { font-size: 16px; margin: 4px 0 8px; }
-  aside h3 { font-size: 13px; margin: 14px 0 4px; }
+  aside .explain-section { margin: 12px 0 4px; }
+  aside .explain-section > summary { display: flex; align-items: center; gap: 8px; padding: 6px 8px; border: 1px solid var(--line); border-radius: 4px; background: #f7f8fa; font-size: 13px; font-weight: 600; cursor: pointer; list-style: none; }
+  aside .explain-section > summary::-webkit-details-marker { display: none; }
+  aside .explain-section > summary::before { width: 0; height: 0; border-top: 5px solid transparent; border-bottom: 5px solid transparent; border-left: 6px solid currentColor; content: ""; transition: transform .12s; }
+  aside .explain-section[open] > summary::before { transform: rotate(90deg); }
+  aside .explain-section > summary:hover { border-color: var(--accent); color: var(--accent); }
+  aside .explain-section > summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
   aside ul, aside ol { padding-left: 18px; margin: 4px 0; }
   aside a { color: var(--accent); }
   .big { font-size: 22px; font-weight: 600; margin: 4px 0 8px; }
@@ -73,7 +85,13 @@
   <label>Y bays (ft) <input id="yBays" value="25, 25"></label>
   <label>Story heights <input id="stories" value="14, 13, 13"></label>
   <label>Beam spaces / bay <input id="beamSpaces" type="number" min="1" max="6" value="3"></label>
-  <label>Shear walls <select id="wallPreset"><option value="symmetric">Symmetric</option><option value="eccentric">Eccentric</option></select></label>
+  <label>Shear walls <select id="wallPreset"><option value="symmetric">Symmetric preset</option><option value="eccentric">Eccentric preset</option><option value="custom">Custom layout</option></select></label>
+  <div id="wallEditor" hidden>
+    <p class="muted" style="font-size:12px">Choose each wall's gridline, start distance, and length. Up to 5 walls can share a gridline. Distances start at the south or west end.</p>
+    <div id="wallRows"></div>
+    <div id="wallError" class="warn" hidden></div>
+    <button id="addWall" type="button">Add shear wall</button>
+  </div>
 
   <h3>Gravity loads (psf)</h3>
   <label>Floor dead <input id="floorDead" type="number" value="80"></label>

@@ -4,6 +4,177 @@
   const $ = id => document.getElementById(id);
   const nums = s => s.split(/[,\s]+/).map(Number).filter(v => v > 0);
   const state = { mode: 'gravity', b: null };
+  let customWalls = [];
+
+  const wallAxisData = axis => {
+    const xBays = nums($('xBays').value), yBays = nums($('yBays').value);
+    const bays = axis === 'x' ? xBays : yBays;
+    const alongBays = axis === 'x' ? yBays : xBays;
+    const coords = [0];
+    bays.forEach(width => coords.push(coords[coords.length - 1] + width));
+    return {
+      coords,
+      labels: coords.map((_, i) => axis === 'x' ? String(i + 1) : String.fromCharCode(65 + i)),
+      length: alongBays.reduce((sum, width) => sum + width, 0)
+    };
+  };
+
+  const readWallRows = () => Array.from($('wallRows').querySelectorAll('.wall-row')).map(row => ({
+    axis: row.querySelector('.wall-axis').value,
+    gridIndex: +row.querySelector('.wall-gridline').value,
+    start: +row.querySelector('.wall-start').value,
+    length: +row.querySelector('.wall-length').value
+  }));
+
+  const renderWallRows = () => {
+    const container = $('wallRows');
+    container.replaceChildren();
+    customWalls.forEach((wall, index) => {
+      const fieldset = document.createElement('fieldset');
+      fieldset.className = 'wall-row';
+      const legend = document.createElement('legend');
+      legend.textContent = `Shear wall ${index + 1}`;
+      fieldset.appendChild(legend);
+
+      const addField = (text, control) => {
+        const label = document.createElement('label');
+        label.append(text, control);
+        fieldset.appendChild(label);
+        return control;
+      };
+      const axis = document.createElement('select');
+      axis.className = 'wall-axis';
+      axis.add(new Option('X gridline (1, 2...)', 'x'));
+      axis.add(new Option('Y gridline (A, B...)', 'y'));
+      axis.value = wall.axis;
+      addField('Gridline direction', axis);
+
+      const gridline = document.createElement('select');
+      gridline.className = 'wall-gridline';
+      const data = wallAxisData(wall.axis);
+      data.labels.forEach((name, i) => gridline.add(new Option(name, String(i))));
+      wall.gridIndex = Math.min(wall.gridIndex, data.labels.length - 1);
+      gridline.value = String(wall.gridIndex);
+      addField('Gridline', gridline);
+
+      const start = document.createElement('input');
+      start.type = 'number';
+      start.min = '0';
+      start.max = String(data.length);
+      start.step = '0.1';
+      start.className = 'wall-start';
+      start.value = wall.start;
+      addField('Start from south/west (ft)', start);
+
+      const length = document.createElement('input');
+      length.type = 'number';
+      length.min = '0.1';
+      length.max = String(data.length);
+      length.step = '0.1';
+      length.className = 'wall-length';
+      length.value = wall.length;
+      addField('Wall length (ft)', length);
+
+      const remove = document.createElement('button');
+      remove.type = 'button';
+      remove.textContent = 'Remove wall';
+      remove.addEventListener('click', () => {
+        customWalls = readWallRows();
+        customWalls.splice(index, 1);
+        renderWallRows();
+        rebuild();
+      });
+      fieldset.appendChild(remove);
+      container.appendChild(fieldset);
+
+      axis.addEventListener('change', () => {
+        customWalls = readWallRows();
+        customWalls[index].gridIndex = 0;
+        renderWallRows();
+        rebuild();
+      });
+      gridline.addEventListener('change', () => {
+        customWalls = readWallRows();
+        refreshWallControls();
+        rebuild();
+      });
+      [start, length].forEach(input => input.addEventListener('change', () => {
+        customWalls = readWallRows();
+        refreshWallControls();
+        rebuild();
+      }));
+    });
+    refreshWallControls();
+  };
+
+  const refreshWallControls = () => {
+    const errors = validateWallRows(customWalls);
+    $('wallError').textContent = errors.join(' ');
+    $('wallError').hidden = !errors.length;
+    const full = ['x', 'y'].every(axis => wallAxisData(axis).labels.every((_, gridIndex) =>
+      customWalls.filter(wall => wall.axis === axis && wall.gridIndex === gridIndex).length >= 5));
+    $('addWall').disabled = full;
+  };
+
+  const validateWallRows = walls => {
+    const errors = [];
+    const groups = new Map();
+    walls.forEach((wall, index) => {
+      const data = wallAxisData(wall.axis);
+      const gridName = data.labels[wall.gridIndex];
+      if (!Number.isInteger(wall.gridIndex) || gridName === undefined) {
+        errors.push(`Shear wall ${index + 1} needs a valid gridline.`);
+        return;
+      }
+      if (!Number.isFinite(wall.start) || !Number.isFinite(wall.length) ||
+          wall.start < 0 || wall.length <= 0 || wall.start + wall.length > data.length + 1e-6) {
+        errors.push(`Shear wall ${index + 1} must have a positive length and fit on gridline ${gridName} (0-${data.length} ft).`);
+      }
+      const key = `${wall.axis}:${wall.gridIndex}`;
+      if (!groups.has(key)) groups.set(key, []);
+      groups.get(key).push({ wall, index, gridName });
+    });
+    groups.forEach(lineWalls => {
+      if (lineWalls.length > 5) errors.push(`Gridline ${lineWalls[0].gridName} can have no more than 5 shear walls.`);
+      const ordered = lineWalls.slice().sort((a, b) => a.wall.start - b.wall.start);
+      for (let i = 1; i < ordered.length; i++) {
+        if (ordered[i].wall.start < ordered[i - 1].wall.start + ordered[i - 1].wall.length - 1e-6) {
+          errors.push(`Shear walls ${ordered[i - 1].index + 1} and ${ordered[i].index + 1} overlap on gridline ${ordered[i].gridName}.`);
+        }
+      }
+    });
+    return errors;
+  };
+
+  const addCustomWall = () => {
+    customWalls = readWallRows();
+    const candidates = ['x', 'y'].flatMap(axis => wallAxisData(axis).labels.map((_, gridIndex) =>
+      ({ axis, gridIndex, count: customWalls.filter(wall => wall.axis === axis && wall.gridIndex === gridIndex).length })))
+      .filter(line => line.count < 5).sort((a, b) => b.count - a.count);
+    for (const line of candidates) {
+      const lineLength = wallAxisData(line.axis).length;
+      const length = lineLength / 5;
+      let start = 0;
+      const occupied = customWalls.filter(wall => wall.axis === line.axis && wall.gridIndex === line.gridIndex)
+        .sort((a, b) => a.start - b.start);
+      for (const wall of occupied) {
+        if (wall.start - start >= length - 1e-6) break;
+        start = Math.max(start, wall.start + wall.length);
+      }
+      if (start + length <= lineLength + 1e-6) {
+        customWalls.push({ axis: line.axis, gridIndex: line.gridIndex, start, length });
+        renderWallRows();
+        rebuild();
+        return;
+      }
+    }
+  };
+
+  const showWallEditor = () => {
+    const custom = $('wallPreset').value === 'custom';
+    $('wallEditor').hidden = !custom;
+    if (custom) renderWallRows();
+  };
 
   const readInputs = () => {
     const inputs = LP.defaultInputs();
@@ -13,6 +184,19 @@
     inputs.beamSpaces = Math.max(1, Math.round(+$('beamSpaces').value));
     ['floorDead', 'floorLive', 'roofDead', 'roofLive'].forEach(k => { inputs[k] = +$(k).value; });
     inputs.wallPreset = $('wallPreset').value;
+    if (inputs.wallPreset === 'custom') {
+      inputs.walls = customWalls.map((wall, index) => {
+        const data = wallAxisData(wall.axis);
+        return {
+          id: `CW${index + 1}`,
+          name: `Shear wall ${index + 1}`,
+          dir: wall.axis === 'x' ? 'y' : 'x',
+          at: data.coords[wall.gridIndex],
+          from: wall.start,
+          to: wall.start + wall.length
+        };
+      });
+    }
     Object.assign(inputs.lateral, {
       type: $('latType').value, dir: $('latDir').value, mode: $('latMode').value,
       windPressure: +$('windPressure').value, Cs: +$('Cs').value,
@@ -75,7 +259,7 @@
           : `${b.inputs.lateral.type === 'wind' ? 'Wind' : 'Seismic'} load in the ${b.inputs.lateral.dir.toUpperCase()} direction goes into each floor diaphragm, along the collectors into the shear walls, and down to the wall footings.</p>
           <p>The floor acts like a deep beam lying flat. Its <b style="color:#2b7bba">shear</b> and <b style="color:#d9822b">moment</b> diagrams are drawn on the roof, or on the level of the member you click; <b style="color:#9b59b6">collector</b> force is drawn as a fence along each wall line. Switch the diaphragm between flexible and rigid to see them change.`}</p>
         <p><b>Total gravity load:</b> ${LP.round(total, 1)} kips<br><b>Base shear:</b> ${LP.round(V, 1)} kips</p>
-        <p class="muted">Click any member to see where its load comes from, where it goes, and the calculation.</p>`;
+        <p class="muted">Click any member to open its details. Click a bold section heading to collapse or expand it.</p>`;
     } else {
       $('panel').innerHTML = LP.explain(b, id, state.mode);
     }
@@ -86,6 +270,13 @@
     // While an imported model is on screen, the bay-grid inputs describe a different building.
     // Silently regenerating from them would throw the user's import away mid-edit.
     if (state.imported) return;
+    if ($('wallPreset').value === 'custom') {
+      customWalls = readWallRows();
+      const errors = validateWallRows(customWalls);
+      $('wallError').textContent = errors.join(' ');
+      $('wallError').hidden = !errors.length;
+      if (errors.length) return;
+    }
     const inputs = readInputs();
     if (!inputs.xBays.length || !inputs.yBays.length || !inputs.storyHeights.length) return;
     const b = LP.buildModel(inputs);
@@ -132,7 +323,16 @@
   view.onElevationModeChange = enabled => { if (enabled) setMode('lateral'); };
   new LP.DropZone($('drop'), showImported);
   $('useInputs').addEventListener('click', () => { state.imported = false; rebuild(); });
-  document.querySelectorAll('#controls input, #controls select').forEach(el => el.addEventListener('change', rebuild));
+  document.querySelectorAll('#controls input, #controls select').forEach(el => {
+    if (!['xBays', 'yBays', 'wallPreset'].includes(el.id)) el.addEventListener('change', rebuild);
+  });
+  $('wallPreset').addEventListener('change', () => { showWallEditor(); rebuild(); });
+  ['xBays', 'yBays'].forEach(id => $(id).addEventListener('change', () => {
+    customWalls = readWallRows();
+    renderWallRows();
+    rebuild();
+  }));
+  $('addWall').addEventListener('click', addCustomWall);
   document.querySelectorAll('[data-mode]').forEach(el => el.addEventListener('click', () => setMode(el.dataset.mode)));
   $('latDir').addEventListener('change', () => setMode('lateral'));
   $('diaphragm').addEventListener('change', () => setMode('lateral'));
@@ -147,6 +347,7 @@
     if (id) { e.preventDefault(); view.select(id); }
   });
 
+  showWallEditor();
   showModeInputs();
   rebuild();
   setMode('gravity');
