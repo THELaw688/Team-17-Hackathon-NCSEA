@@ -68,6 +68,20 @@ how we avoid two people rewriting the same file.
 
 ## Log
 
+### 2026-10-27 — Collapse button for the load path caption bars
+**Who:** Zack (+ Claude Code) · **Branch:** feature/collapsible-captions
+
+- **What changed:** The stage caption bar (lateral arrows and gravity glow) has a **Hide ▾**
+  button at the end of its chip row. Collapsed, the bar shrinks to a small **Show stages ▴** pill
+  in the bottom-right corner; the animation keeps playing. One shared setting covers both modes
+  and is remembered in the browser. The expanded bar is now `min(520px, max(300px, 100% - 320px))`
+  wide, so on a laptop-size screen it no longer overlaps the force legend.
+- **Why:** the bar still covered part of the model, especially the near corner of the building.
+- **Files:** `src/frontend/overlay.js` (new `LP.collapsibleCaption`), `src/frontend/lateral-arrows.js`
+  and `src/frontend/gravity-flow.js` (one call each, plus the width), `CHANGELOG.md`
+- **Heads up:** role 3's files (Nick). The collapsed state is stored in `localStorage` under
+  `lp.captionsCollapsed`; if it's unavailable the bar just starts expanded.
+
 ### 2026-10-27 — Move the load path caption bars to the bottom right
 **Who:** Zack (+ Claude Code) · **Branch:** fix/caption-bar-bottom-right
 
