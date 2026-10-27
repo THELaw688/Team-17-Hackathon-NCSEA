@@ -60,6 +60,23 @@ how we avoid two people rewriting the same file.
 
 ## Log
 
+### 2026-10-27 — Add 5% accidental torsion to the rigid diaphragm (seismic)
+**Who:** Josh (+ Claude Code) · **Branch:** feature/lateral-loads
+
+- **What changed:** `LP.distribute` now adds ASCE 7 12.8.4.2 accidental torsion for seismic load on
+  a rigid diaphragm: the mass is shifted ±5% of the building width across the load, and each wall
+  keeps whichever shift is worse for it. The wall calc line shows the case used, e.g.
+  `e = 0 - 2.5 accidental = -2.5 ft`. `b.rigid` gains an `eAcc` field; `b.rigid.e` is unchanged.
+- **Why:** a symmetric building previously had zero torsion on a rigid diaphragm, which ASCE 7
+  doesn't allow for seismic design.
+- **Files:** `src/shared/lateral.js` (`LP.distribute` rigid branch only), `CHANGELOG.md`
+- **Heads up:** On by default; `inputs.lateral.accidentalTorsion: false` turns it off (no checkbox
+  yet, see `docs/role5-inputs.md`). Wind and flexible diaphragms are unchanged. Because each wall
+  takes its own worst case, wall forces in a story can sum to slightly more than the story force.
+  All 20 hand-calc checks pass (run in the browser; Node not installed here, so `check.js` itself
+  was not run). Role 6: a seismic + rigid check case would be good; symmetric test building gives
+  0.321 k torsion per wall at the roof.
+
 ### 2026-10-27 — Add role 5 lateral input list for role 1
 **Who:** Josh (+ Claude Code) · **Branch:** feature/lateral-loads
 

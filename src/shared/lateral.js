@@ -72,14 +72,24 @@
     const sumKp = perp.reduce((s, w) => s + w.length, 0);
     const crP = sumKp ? perp.reduce((s, w) => s + w.length * w.at, 0) / sumKp : 0;
     const e = depth / 2 - cr;
+    // ASCE 7 12.8.4.2: for seismic, also shift the mass +/-5% of the building width across the load.
+    // Each wall keeps whichever shift is worse for it, so wall forces can sum to more than F.
+    const eAcc = L.type === 'seismic' && L.accidentalTorsion !== false ? 0.05 * depth : 0;
     const J = par.reduce((s, w) => s + w.length * (w.at - cr) ** 2, 0) + perp.reduce((s, w) => s + w.length * (w.at - crP) ** 2, 0);
-    if (J === 0 && Math.abs(e) > 1e-6) b.warnings.push('Walls cannot resist torsion: the rigid diaphragm is unstable.');
-    b.rigid = { cr, e, J, sumK };
-    const T = J ? F * e / J : 0;
-    return par.map(w => ({ wall: w, V: F * w.length / sumK + T * w.length * (w.at - cr),
-      note: `Rigid: direct ${r(F * w.length / sumK)} k (k = L = ${r(w.length)} of ${r(sumK)}) + torsion ${r(T * w.length * (w.at - cr))} k (e = ${r(e)} ft)` }))
-      .concat(perp.map(w => ({ wall: w, V: -T * w.length * (w.at - crP), torsion: true,
-        note: `Rigid: torsion only, ${r(-T * w.length * (w.at - crP))} k (perpendicular wall resisting twist)` })));
+    if (J === 0 && (Math.abs(e) > 1e-6 || eAcc)) b.warnings.push('Walls cannot resist torsion: the rigid diaphragm is unstable.');
+    b.rigid = { cr, e, eAcc, J, sumK };
+    const cases = eAcc ? [e + eAcc, e - eAcc] : [e];
+    const twist = (ec, w, c) => (J ? F * ec / J : 0) * w.length * (w.at - c);
+    const eNote = ec => eAcc ? `e = ${r(e)} ${ec > e ? '+' : '-'} ${r(eAcc)} accidental = ${r(ec)} ft` : `e = ${r(e)} ft`;
+    return par.map(w => {
+      const ec = cases.reduce((a, x) => twist(x, w, cr) > twist(a, w, cr) ? x : a), Vt = twist(ec, w, cr);
+      return { wall: w, V: F * w.length / sumK + Vt,
+        note: `Rigid: direct ${r(F * w.length / sumK)} k (k = L = ${r(w.length)} of ${r(sumK)}) + torsion ${r(Vt)} k (${eNote(ec)})` };
+    }).concat(perp.map(w => {
+      const ec = cases.reduce((a, x) => Math.abs(twist(x, w, crP)) > Math.abs(twist(a, w, crP)) ? x : a), Vt = -twist(ec, w, crP);
+      return { wall: w, V: Vt, torsion: true,
+        note: `Rigid: torsion only, ${r(Vt)} k (perpendicular wall resisting twist, ${eNote(ec)})` };
+    }));
   };
 
   // ---- Role 6: collectors, chords, walls, overturning -------------------------
