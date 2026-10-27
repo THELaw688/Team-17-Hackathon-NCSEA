@@ -61,6 +61,19 @@ how we avoid two people rewriting the same file.
 
 ## Log
 
+### 2026-10-27 — Repo renamed to Team-17-Hackathon-NCSEA
+**Who:** Sam (+ Claude Code) · **Branch:** dev
+
+- **What changed:** The GitHub repository was renamed from `Team-24-Hackathon-NCSEA` to
+  `Team-17-Hackathon-NCSEA`. Updated the clone URL and folder names in `README.md` and
+  `docs/load-path-explorer.md`.
+- **Why:** The repo name was the last place still carrying the wrong team number.
+- **Files:** `README.md`, `docs/load-path-explorer.md`, `CHANGELOG.md`
+- **Heads up:** **Everyone with an existing clone should repoint their remote**, or pushes keep
+  going through GitHub's redirect:
+  `git remote set-url origin https://github.com/THELaw688/Team-17-Hackathon-NCSEA.git`
+  Your local folder can keep its old name; only the remote URL matters. New clones get it right.
+
 ### 2026-10-27 — Add IFC drop zone and import
 **Who:** Sam (+ Claude Code) · **Branch:** dev
 

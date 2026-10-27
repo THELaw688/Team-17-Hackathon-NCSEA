@@ -5,7 +5,7 @@ A 3D browser tool that traces gravity and lateral load through a building, calcu
 ## Run it
 
 ```
-cd Team-24-Hackathon-NCSEA        # repo root
+cd Team-17-Hackathon-NCSEA        # repo root
 python -m http.server 8765 --bind 127.0.0.1
 ```
 Open http://127.0.0.1:8765/src/frontend/. Three.js loads from a CDN, so you need internet access.
