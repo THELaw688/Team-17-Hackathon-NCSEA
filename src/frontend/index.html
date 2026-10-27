@@ -28,7 +28,13 @@
   #legend .ends { display: flex; justify-content: space-between; color: var(--muted); }
   aside { overflow-y: auto; padding: 12px 16px; border-left: 1px solid var(--line); }
   aside h2 { font-size: 16px; margin: 4px 0 8px; }
-  aside h3 { font-size: 13px; margin: 14px 0 4px; }
+  aside .explain-section { margin: 12px 0 4px; }
+  aside .explain-section > summary { display: flex; align-items: center; gap: 8px; padding: 6px 8px; border: 1px solid var(--line); border-radius: 4px; background: #f7f8fa; font-size: 13px; font-weight: 600; cursor: pointer; list-style: none; }
+  aside .explain-section > summary::-webkit-details-marker { display: none; }
+  aside .explain-section > summary::before { width: 0; height: 0; border-top: 5px solid transparent; border-bottom: 5px solid transparent; border-left: 6px solid currentColor; content: ""; transition: transform .12s; }
+  aside .explain-section[open] > summary::before { transform: rotate(90deg); }
+  aside .explain-section > summary:hover { border-color: var(--accent); color: var(--accent); }
+  aside .explain-section > summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
   aside ul, aside ol { padding-left: 18px; margin: 4px 0; }
   aside a { color: var(--accent); }
   .big { font-size: 22px; font-weight: 600; margin: 4px 0 8px; }

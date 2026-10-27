@@ -43,6 +43,7 @@ Roles 5 and 6 share `lateral.js`: 5 edits only `storyForces` and `distribute`, 6
   - `results.gravity.selfWeight` (kips): the part of `value` that is member self-weight, including what came from members above. 0 when self-weight is off. Columns also have `ownWeight`, their own story's weight.
   - `results.gravity.liveReduction = { KLL, AT, floors, factor, removed }` on beams, girders, columns and footings that support a floor, when live load reduction is on. `factor` is L/Lo (1 means no reduction allowed), `removed` is the kips taken off `value`. Missing when reduction is off or the member only supports the roof. Path values stay unreduced: each member reduces its own live load.
 - `b.paths[]`: `{ mode, from, to, value (kips), at: {x, y, z} connection point, note }`: one step of load transfer. The trace, the flow animation and the explain panel all read these.
+- In the member details panel, **Load comes from**, **Load goes to** and **Calculation** are expandable sections; all are open by default.
 - `b.walls[]`: `{ id, name, dir ('x' runs along X at y = at, 'y' runs along Y at x = at), at, from, to, length }`
 - `b.xs` / `b.ys` and `b.xLabels` / `b.yLabels`: gridline positions and their names. The 3D view
   shows numbered X lines and lettered Y lines with bubbles; click a bubble to rename its
