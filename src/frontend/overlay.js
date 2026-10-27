@@ -5,6 +5,43 @@
   // t = 0 (light, blue) ... 1 (heaviest member of its type, red)
   LP.forceColor = t => new THREE.Color().setHSL(0.6 * (1 - Math.min(1, Math.max(0, t))), 0.75, 0.5);
 
+  // Stage caption bars (lateral arrows, gravity glow) share one collapsed state, remembered in this
+  // browser, so hiding the bar in one mode hides it in the other too. The animation keeps playing.
+  const COLLAPSE_KEY = 'lp.captionsCollapsed';
+  try { LP.captionsCollapsed = localStorage.getItem(COLLAPSE_KEY) === '1'; } catch (e) { LP.captionsCollapsed = false; }
+  const captionBars = [];
+
+  /**
+   * Add a Hide / Stages toggle to a caption bar. Collapsed, the bar shrinks to just the button.
+   * @param {HTMLElement} bar the bar; its width is restored on expand
+   * @param {HTMLElement} row the row of stage chips (the button goes at its end)
+   * @param {HTMLElement} text the caption line
+   */
+  LP.collapsibleCaption = function (bar, row, text) {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.style.cssText = 'flex:none;white-space:nowrap;border:1px solid #d5dae0;background:#fff;color:#1d2733;border-radius:4px;font:inherit;font-size:11px;padding:2px 8px;cursor:pointer;';
+    row.appendChild(btn);
+    const width = bar.style.width;
+    const apply = () => {
+      const c = LP.captionsCollapsed;
+      row.querySelectorAll('span').forEach(s => { s.style.display = c ? 'none' : ''; });
+      text.style.display = c ? 'none' : '';
+      row.style.marginBottom = c ? '0' : '4px';
+      bar.style.width = c ? 'auto' : width;
+      btn.textContent = c ? 'Show stages ▴' : 'Hide ▾';
+      btn.title = c ? 'Show the load path stages' : 'Hide the load path stages';
+      btn.setAttribute('aria-expanded', String(!c));
+    };
+    btn.addEventListener('click', () => {
+      LP.captionsCollapsed = !LP.captionsCollapsed;
+      try { localStorage.setItem(COLLAPSE_KEY, LP.captionsCollapsed ? '1' : '0'); } catch (e) { /* not remembered; fine */ }
+      captionBars.forEach(f => f());
+    });
+    captionBars.push(apply);
+    apply();
+  };
+
   LP.Overlay = class {
     constructor(view) {
       this.view = view;

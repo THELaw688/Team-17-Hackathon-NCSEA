@@ -31,7 +31,7 @@
 
       // Caption bar: stage chips (click to jump) and one line saying what is happening.
       this.bar = document.createElement('div');
-      this.bar.style.cssText = 'position:absolute;right:12px;bottom:12px;width:min(520px,calc(100% - 240px));' +
+      this.bar.style.cssText = 'position:absolute;right:12px;bottom:12px;width:min(520px,max(300px,calc(100% - 320px)),calc(100% - 24px));' +
         'background:rgba(255,255,255,.96);border:1px solid #d5dae0;border-radius:8px;padding:6px 10px;font-size:12px;display:none;';
       this.chips = STAGES.map(s => {
         const chip = document.createElement('span');
@@ -46,6 +46,7 @@
       this.text = document.createElement('div');
       this.text.style.minHeight = '34px';
       this.bar.append(row, this.text);
+      LP.collapsibleCaption(this.bar, row, this.text);
       view.container.appendChild(this.bar);
     }
 
