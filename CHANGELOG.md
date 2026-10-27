@@ -56,10 +56,60 @@ how we avoid two people rewriting the same file.
   Foundation `src/shared/elements.js` is done; `src/shared/import-ifc.js`,
   `src/shared/import-etabs.js` and `src/frontend/editor.js` are not written yet — if you pick one
   up, say so here first.
+- **Josh (+ Claude Code)** — Role 5, lateral loads + diaphragm: `LP.storyForces` and
+  `LP.distribute` in `src/shared/lateral.js` (ASCE 7 inputs, 5% accidental torsion, semi-rigid
+  note). Branch `feature/lateral-loads`. Role 6: `runLateral` in the same file is yours, I won't touch it.
 
 ---
 
 ## Log
+
+### 2026-10-27 — Diaphragm diagram: include the accidental torsion mass shift
+**Who:** Josh (+ Claude Code), approved by Nick (role 3 owner) · **Branch:** feature/lateral-loads
+
+- **What changed:** `LP.diaphragmDiagram` draws the story load as a linearly varying (trapezoidal)
+  load with the same total and its centroid moved by `b.rigid.ec - b.rigid.e`, instead of a uniform
+  load. `w1 = 12 F shift / depth^3` is the slope.
+- **Why:** with accidental torsion the wall forces assume the mass sits 5% off center, but the
+  diagram still loaded the floor at its center, so the moment missed closing by exactly F x e_acc
+  (e.g. 47 k-ft at Level 2 of the test building).
+- **Files:** `src/shared/diagrams.js`, `CHANGELOG.md`
+- **Heads up:** no change for wind, flexible diaphragms or torsion off (`shift = 0`). Seismic + rigid
+  diagrams now close in X and Y for symmetric and eccentric layouts; all 30 `check.js` checks pass
+  (run in the browser, Node not installed here). Role 3 still owns this file; this was a one-off
+  agreed with Nick.
+
+### 2026-10-27 — Add 5% accidental torsion to the rigid diaphragm (seismic)
+**Who:** Josh (+ Claude Code) · **Branch:** feature/lateral-loads
+
+- **What changed:** `LP.distribute` now adds ASCE 7 12.8.4.2 accidental torsion for seismic load on
+  a rigid diaphragm: the mass is shifted ±5% of the building width across the load. One shift is
+  used per story, the one that loads the heaviest wall; the opposite shift mirrors it onto the
+  walls on the other side. The wall calc line shows it, e.g.
+  `e = 0 + 2.5 accidental = 2.5 ft; design each wall for the worse of +/-5%`. `b.rigid` gains
+  `eAcc` and `ec` (eccentricity used); `b.rigid.e` is unchanged.
+- **Why:** a symmetric building previously had zero torsion on a rigid diaphragm, which ASCE 7
+  doesn't allow for seismic design. One shift per story (not a worst case per wall) keeps wall
+  forces summing to the story force, so the diaphragm diagrams in `diagrams.js` still close.
+- **Files:** `src/shared/lateral.js` (`LP.distribute` rigid branch only), `CHANGELOG.md`
+- **Heads up:** On by default; `inputs.lateral.accidentalTorsion: false` turns it off (no checkbox
+  yet, see `docs/role5-inputs.md`). Wind and flexible diaphragms are unchanged. Walls on the light
+  side show the shift that reduces their force; the calc line says to design for the worse of ±5%.
+  All 30 checks in `check.js` pass when run in the browser (Node not installed here, so `check.js`
+  itself was not run). Role 6: a seismic + rigid check case would be good; test building, Level 2:
+  direct 9.43 k + torsion 0.43 k, walls 9.86 / 9.00 k, sum 18.86 k = F.
+
+### 2026-10-27 — Add role 5 lateral input list for role 1
+**Who:** Josh (+ Claude Code) · **Branch:** feature/lateral-loads
+
+- **What changed:** Added `docs/role5-inputs.md`: the ASCE 7-22 inputs role 5 needs (risk
+  category, SDS, SD1, lateral system, wind speed, exposure, accidental torsion), with defaults,
+  proposed `inputs.lateral` keys, and MVP / nice-to-have / stretch priority.
+- **Why:** the new input boxes live in role 1's files (`index.html`, `app.js`, `model.js`), so
+  role 1 needs the list before role 5's seismic and wind math can be wired up.
+- **Files:** `docs/role5-inputs.md`, `CHANGELOG.md`
+- **Heads up:** proposal only, no code changed. Nick: the "Ask for role 1" table at the top is the
+  part you need. The current Cs and Wind (psf) boxes stay as an Override mode.
 
 ### 2026-10-27 — Add ASCE 7 lateral inputs to the panel (role 5's ask)
 **Who:** Nick (+ Claude Code) · **Branch:** feature/lateral-inputs

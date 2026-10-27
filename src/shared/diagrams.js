@@ -17,6 +17,10 @@
     const dia = b.members[`DIA-${lv.tag}`].results.lateral;
     if (!dia) return null;
     const depth = dir === 'x' ? b.Ly : b.Lx, len = dir === 'x' ? b.Lx : b.Ly, w = dia.value / depth;
+    // Accidental torsion (role 5) shifts the seismic mass by ec - e across the depth. Draw the load as
+    // varying linearly with the same total and its centroid moved by that amount, or the moment won't close.
+    const shift = b.rigid && b.rigid.ec !== undefined && b.inputs.lateral.diaphragm === 'rigid' ? b.rigid.ec - b.rigid.e : 0;
+    const w1 = 12 * dia.value * shift / depth ** 3; // klf per ft of depth
     const lines = b.wallLines.filter(l => l.dir === dir).map(l => {
       const p = b.paths.find(q => q.mode === 'lateral' && q.from === `DIA-${lv.tag}` && q.to === `COLL-${lv.tag}-${l.id}`);
       return { at: l.at, R: p ? p.value : 0 };
@@ -40,8 +44,8 @@
 
     const pts = stations.map(({ s, after }) => {
       const acting = lines.filter(l => l.at < s - 1e-9 || (after && Math.abs(l.at - s) < 1e-9));
-      const V = acting.reduce((t, l) => t + l.R, 0) - w * s;
-      const M = acting.reduce((t, l) => t + l.R * (s - l.at), 0) - w * s * s / 2 + twistTo(s);
+      const V = acting.reduce((t, l) => t + l.R, 0) - w * s - w1 * (s * s - depth * s) / 2;
+      const M = acting.reduce((t, l) => t + l.R * (s - l.at), 0) - w * s * s / 2 - w1 * (s ** 3 / 6 - depth * s * s / 4) + twistTo(s);
       return { s, V, M };
     });
     const ext = pts.reduce((m, p) => Math.abs(p.M) > Math.abs(m.M) ? p : m, pts[0]);
