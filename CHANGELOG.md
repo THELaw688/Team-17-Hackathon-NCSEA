@@ -61,6 +61,24 @@ how we avoid two people rewriting the same file.
 
 ## Log
 
+### 2026-10-27 — Draw diaphragm shear, moment, chord and collector diagrams in 3D
+**Who:** Nick (+ Claude Code) · **Branch:** feature/diaphragm-diagrams
+
+- **What changed:** In lateral mode, the diaphragm's shear (blue) and moment (orange) diagrams are
+  drawn flat on the floor, chord tension and compression are labeled at the point of max moment,
+  and collector force is drawn as an upright fence along each wall line. They show on the roof, or
+  on the level of the clicked member. New "Show diagrams" toggle under View.
+- **Why:** the diaphragm-as-a-flat-beam idea is the part of lateral load path engineers find
+  hardest; switching flexible to rigid now visibly changes the diagrams.
+- **Files:** `src/shared/diagrams.js` (new), `src/frontend/overlay.js`, `src/frontend/index.html`,
+  `src/frontend/app.js`, `tests/shared/check.js`, `docs/load-path-explorer.md`, `CHANGELOG.md`
+- **Heads up:** diagrams are built by statics from the wall-line forces the analysis already
+  produces (10 new checks, all 30 passing), so they don't touch `lateral.js`. With a rigid diaphragm
+  and torsion, the perpendicular walls' couple is included so the moment closes. **For role 6:**
+  `runLateral` still computes chord force from simple spans between wall lines, so in the rigid
+  eccentric case the chord member says 0.45 k while the diagram says 0.7 k at the roof. Using
+  `LP.diaphragmDiagram(b, li).Mext / d` there would make them agree.
+
 ### 2026-10-27 — Repo renamed to Team-17-Hackathon-NCSEA
 **Who:** Sam (+ Claude Code) · **Branch:** dev
 

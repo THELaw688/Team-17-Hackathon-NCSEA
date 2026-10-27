@@ -3,7 +3,7 @@
 // floor 80 + 50 psf, roof 30 + 20 psf, 3 beam spaces per bay (10 ft spacing).
 const fs = require('fs'), path = require('path'), vm = require('vm');
 const ctx = vm.createContext({ console });
-['model.js', 'gravity.js', 'lateral.js'].forEach(f =>
+['model.js', 'gravity.js', 'lateral.js', 'diagrams.js'].forEach(f =>
   vm.runInContext(fs.readFileSync(path.join(__dirname, '..', '..', 'src', 'shared', f), 'utf8'), ctx, { filename: f }));
 const LP = ctx.LP;
 
@@ -68,6 +68,28 @@ check('Parallel walls carry the story force', l(b, 'WS-R') + l(b, 'WN-R'), 7);
 check('Perpendicular wall torsion forces balance', b.members['WW-R'].results.lateral.shear + b.members['WE-R'].results.lateral.shear, 0);
 const bf = run({ diaphragm: 'flexible' }, ecc);
 console.log(`      North wall, story 1 shear: flexible ${LP.round(l(bf, 'WN-L2'))} k vs rigid ${LP.round(l(b, 'WN-L2'))} k`);
+
+console.log('\nDiagrams: wind X, flexible, Level 2 (w = 0.28 klf over 50 ft, walls at y = 0 and 50)');
+b = run({});
+let d = LP.diaphragmDiagram(b, 0);
+check('Diaphragm max shear = wL/2 = 0.28 x 50 / 2', d.Vmax, 7);
+check('Diaphragm max moment = wL^2/8 = 0.28 x 50^2 / 8', d.Mext, 87.5);
+check('Max moment at midspan', d.sAtM, 25);
+check('Shear closes to zero at the far edge', d.pts.at(-1).V, 0);
+check('Moment closes to zero at the far edge', d.pts.at(-1).M, 0);
+check('Chord force from the diagram = M / d = 87.5 / 60 (matches the analysis)', d.Mext / d.len, l(b, 'CHORD-L2-W'));
+check('Collector diagram max on y = 0 = 7 k x 30 / 60', LP.collectorDiagram(b, 0, b.wallLines.find(x => x.id === 'x0')).Fmax, 3.5);
+d = LP.diaphragmDiagram(run({ diaphragm: 'rigid' }, ecc), 0);
+check('Rigid, eccentric: shear still closes (wall lines carry the full story force)', d.pts.at(-1).V, 0);
+check('Rigid, eccentric: moment closes once the perpendicular walls\' couple is included', d.pts.at(-1).M / Math.abs(d.Mext), 0);
+const ecY = [
+  { id: 'WW', name: 'West wall', dir: 'y', at: 0, from: 0, to: 50 },
+  { id: 'WE', name: 'East wall', dir: 'y', at: 60, from: 0, to: 20 },
+  { id: 'WS', name: 'South wall', dir: 'x', at: 0, from: 0, to: 30 },
+  { id: 'WN', name: 'North wall', dir: 'x', at: 50, from: 0, to: 30 }
+];
+d = LP.diaphragmDiagram(run({ diaphragm: 'rigid', dir: 'y' }, ecY), 0);
+check('Rigid, eccentric, Y direction: moment closes too', d.pts.at(-1).M / Math.abs(d.Mext), 0);
 
 console.log(failed ? `\n${failed} check(s) FAILED` : '\nAll checks passed');
 process.exit(failed ? 1 : 0);
