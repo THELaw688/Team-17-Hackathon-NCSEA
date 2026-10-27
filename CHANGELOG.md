@@ -52,6 +52,10 @@ markers, order the two by date, done. Never resolve a conflict here by discardin
 Add a line when you start something that will take a while, and remove it when you're done. This is
 how we avoid two people rewriting the same file.
 
+- **Zack (+ Claude Code)** — Role 4, gravity: `src/shared/gravity.js` and the gravity part of
+  `tests/shared/check.js` (tributary area for the selected member, self-weight, more check cases).
+  Branch `feature/gravity`. I won't touch `lateral.js` or the lateral checks.
+
 - **Sam** — IFC / ETABS import and in-program editing. Spec in `docs/import-and-editing.md`.
   Foundation `src/shared/elements.js` is done; `src/shared/import-ifc.js`,
   `src/shared/import-etabs.js` and `src/frontend/editor.js` are not written yet — if you pick one
@@ -63,6 +67,40 @@ how we avoid two people rewriting the same file.
 ---
 
 ## Log
+
+### 2026-10-27 — Gravity results now include each member's tributary area
+**Who:** Zack (+ Claude Code) · **Branch:** feature/gravity
+
+- **What changed:** `LP.runGravity` now puts `tribArea = { rects, area }` on every deck, beam,
+  girder, column and footing: the plan rectangles the member's load comes from. Columns list one
+  rectangle per level they support; footings list all levels. Column calcs in the panel now start
+  with "Tributary area at Level 2 = 30 ft x 25 ft = 750 sq ft". Added 9 checks, including one that
+  every member in four test buildings carries exactly pressure x its tributary area.
+- **Why:** so the 3D view can shade the tributary area of the selected member, the clearest way
+  to show where a member's load comes from.
+- **Files:** `src/shared/gravity.js`, `tests/shared/check.js`, `docs/load-path-explorer.md`,
+  `CHANGELOG.md`
+- **Heads up:** **Roles 2 and 3:** the data is ready, nothing draws it yet. The field is
+  documented in `docs/load-path-explorer.md`. Draw each rectangle as a flat patch at its `z`
+  with `LP.toWorld`. It's named `tribArea` because beams already use `trib` for the tributary
+  *width* (a number). No change to load values; all 49 checks pass. Merged the latest `dev`
+  (Sam's IFC import) into this branch first. Imported IFC models still aren't analysed, so they
+  have no `tribArea`.
+
+### 2026-10-27 — Add gravity check cases: edge and corner columns, unequal bays, one-bay buildings
+**Who:** Zack (+ Claude Code) · **Branch:** feature/gravity
+
+- **What changed:** Added 19 hand-calc checks to the gravity part of `tests/shared/check.js`: edge
+  and corner columns and footings in the existing 2 x 2 building; a building with unequal bays
+  (X 20 + 40 ft, Y 24 + 30 ft); a one-bay, two-story building; and a one-bay, one-story building
+  with no filler beams. Each case also checks that the footings add up to the total load.
+- **Why:** the original checks covered the center column and one corner. Edge columns, unequal
+  bays and tiny buildings are where tributary widths and girder reactions go wrong, so these guard
+  every later change to `gravity.js` (tributary shading, self-weight).
+- **Files:** `tests/shared/check.js`, `CHANGELOG.md`
+- **Heads up:** no change to `gravity.js`; all 40 checks pass. The new cases build their own models
+  and run gravity only, so they don't depend on the lateral wall layout. `node tests/shared/check.js`
+  before merging, as always.
 
 ### 2026-10-27 — Draw lateral load as staged arrows instead of dots
 **Who:** Nick (+ Claude Code) · **Branch:** feature/lateral-arrows
