@@ -82,16 +82,33 @@ check('Girder B, bay 1-2 = 2 beams x 10 ft x (12.5 + 12.5) ft', ta(b, 'GD-L2-B-0
 check('Unequal bays: column B2 at Level 2 = 30 ft x 27 ft', ta(u, 'COL-B2-L2').rects[0].area, 810);
 check('Unequal bays: column B2, story 1 = Level 2 + roof = 2 x 810', ta(u, 'COL-B2-L2').area, 1620);
 check('Footing A1 = 2 levels x 15 ft x 12.5 ft', ta(b, 'FTG-A1').area, 375);
-// Every member in every test building: load = sum of (D + L at that level) x its tributary rectangles.
-// Columns and footings are checked on their total, so this also covers the column-above chain.
+console.log('\nGravity: member self-weight on (beams 30, girders 60, columns 50 plf), 2 x 2 building');
+const swOn = { selfWeight: { on: true } };
+const s = runG(swOn);
+check('Filler beam reaction = (1.30 + 0.03 klf) x 25 ft / 2', s.members['BM-L2-10-0'].results.gravity.reaction, 16.625);
+check('Filler beam self-weight = 0.03 klf x 25 ft', s.members['BM-L2-10-0'].results.gravity.selfWeight, 0.75);
+check('Girder B, bay 1-2 = 4 beam ends x 16.625 + 0.06 klf x 30 ft', g(s, 'GD-L2-B-0'), 68.3);
+check('Column B2 below roof = 37.5 + 4.05 roof framing self-weight + 0.05 klf x 14 ft', g(s, 'COL-B2-R'), 42.25);
+check('Column B2 below Level 2 = 101.55 framing + 42.25 above + 0.7 own', g(s, 'COL-B2-L2'), 144.5);
+check('Corner footing A1 = 26.025 + 11.725 + 0.7', g(s, 'FTG-A1'), 38.45);
+check('Sum of footings = 540 + 2 x (beams 10.5 + girders 10.8 + columns 6.3)', footingSum(s), 595.2);
+const su = runG(Object.assign({ xBays: [20, 40], yBays: [24, 30] }, swOn));
+check('Unequal bays: sum of footings = 583.2 + 2 x (11.34 + 10.8 + 6.3)', footingSum(su), 640.08);
+const heavyCols = runG({ selfWeight: { on: true, beam: 0, girder: 0, column: 100 } });
+check('Custom weights: footing B2 = 135 + 2 stories x 0.1 klf x 14 ft', g(heavyCols, 'FTG-B2'), 137.8);
+
+// Every member in every test building: load = sum of (D + L at that level) x its tributary rectangles,
+// plus the self-weight it picks up. Columns and footings are checked on their total, so this also
+// covers the column-above chain.
 const wAt = (m, z) => { const lv = m.levels.find(v => Math.abs(v.elev - z) < 1e-6); return lv.dead + lv.live; };
-[['2 x 2', b], ['unequal bays', u], ['one bay', one], ['no filler beams', bare]].forEach(([name, m]) => {
+[['2 x 2', b], ['unequal bays', u], ['one bay', one], ['no filler beams', bare],
+ ['2 x 2 with self-weight', s], ['unequal bays with self-weight', su]].forEach(([name, m]) => {
   const bad = Object.values(m.members).filter(x => x.results.gravity).filter(x => {
     const gr = x.results.gravity, fromArea = gr.tribArea.rects.reduce((s, q) => s + wAt(m, q.z) * q.area / 1000, 0);
-    return Math.abs(fromArea - gr.value) > 0.001 * Math.max(1, gr.value);
+    return Math.abs(fromArea + gr.selfWeight - gr.value) > 0.001 * Math.max(1, gr.value);
   });
   if (bad.length) console.log(`      mismatched: ${bad.map(x => x.id).join(', ')}`);
-  check(`${name}: members whose load != pressure x tributary area`, bad.length, 0);
+  check(`${name}: members whose load != pressure x tributary area + self-weight`, bad.length, 0);
 });
 
 console.log('\nLateral: wind X, 20 psf, flexible');
