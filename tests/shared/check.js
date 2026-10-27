@@ -40,6 +40,41 @@ check('Column A1 load collected at Level 2 = 130 psf x 187.5 sq ft', b.members['
 const totalLoad = (130 + 50) * 60 * 50 / 1000;
 check('Sum of footings = total building load', Object.values(b.members).filter(m => m.type === 'footing').reduce((s, m) => s + m.results.gravity.value, 0), totalLoad);
 
+// Gravity-only runs for other buildings; walls fall back to the preset since lateral isn't checked here.
+const runG = over => { const m = LP.buildModel(Object.assign(inputs({}), { walls: null }, over)); LP.runGravity(m); return m; };
+const fromLevel = (m, id) => m.members[id].results.gravity.fromLevel;
+const footingSum = m => Object.values(m.members).filter(x => x.type === 'footing').reduce((s, x) => s + x.results.gravity.value, 0);
+
+console.log('\nGravity: edge and corner columns (same 2 x 2 building)');
+check('Edge column A2 at Level 2 = 130 psf x (30 x 12.5 = 375 sq ft)', fromLevel(b, 'COL-A2-L2'), 48.75);
+check('Edge column B1 at Level 2 = 130 psf x (15 x 25 = 375 sq ft)', fromLevel(b, 'COL-B1-L2'), 48.75);
+check('Corner column C3 = corner A1 by symmetry', fromLevel(b, 'COL-C3-L2'), 24.375);
+check('Corner column A1 at roof = 50 psf x 187.5 sq ft', g(b, 'COL-A1-R'), 9.375);
+check('Edge column A2, story 1 = 48.75 from Level 2 + 18.75 from roof', g(b, 'COL-A2-L2'), 67.5);
+check('Corner footing A1 = (130 + 50) psf x 187.5 sq ft', g(b, 'FTG-A1'), 33.75);
+
+console.log('\nGravity: unequal bays (X 20 + 40 ft, Y 24 + 30 ft)');
+const u = runG({ xBays: [20, 40], yBays: [24, 30] });
+check('Filler beam x = 33.33, bay B-C = 130 psf x 13.33 ft x 30 ft / 2', u.members['BM-L2-33.333-1'].results.gravity.reaction, 26);
+check('Girder B, bay 2-3 = 2 beams x 130 psf x 13.33 ft x (12 + 15) ft', g(u, 'GD-L2-B-1'), 93.6);
+check('Interior column B2 at Level 2 = 130 psf x (10 + 20) x (12 + 15) = 810 sq ft', fromLevel(u, 'COL-B2-L2'), 105.3);
+check('Corner column A1 at Level 2 = 130 psf x (10 x 12 = 120 sq ft)', fromLevel(u, 'COL-A1-L2'), 15.6);
+check('Corner column C3 at Level 2 = 130 psf x (20 x 15 = 300 sq ft)', fromLevel(u, 'COL-C3-L2'), 39);
+check('Sum of footings = (130 + 50) psf x 60 x 54', footingSum(u), 583.2);
+
+console.log('\nGravity: one-bay building (30 x 25 ft, 2 stories)');
+const one = runG({ xBays: [30], yBays: [25] });
+check('Every column is a corner: B2 at Level 2 = 130 psf x 187.5 sq ft', fromLevel(one, 'COL-B2-L2'), 24.375);
+check('Girder A carries beams from one side only = 2 x 16.25', g(one, 'GD-L2-A-0'), 32.5);
+check('Sum of footings = (130 + 50) psf x 30 x 25', footingSum(one), 135);
+
+console.log('\nGravity: one bay, one story, no filler beams (deck spans 30 ft to the grid beams)');
+const bare = runG({ xBays: [30], yBays: [25], storyHeights: [14], beamSpaces: 1 });
+check('Grid beam on line 1 = 50 psf x 15 ft x 25 ft / 2', bare.members['BM-R-0-0'].results.gravity.reaction, 9.375);
+check('Girders carry nothing with no filler beams', g(bare, 'GD-R-A-0'), 0);
+check('Footing A1 = 50 psf x 187.5 sq ft', g(bare, 'FTG-A1'), 9.375);
+check('Sum of footings = 50 psf x 30 x 25', footingSum(bare), 37.5);
+
 console.log('\nLateral: wind X, 20 psf, flexible');
 check('Level 2 story force = 20 x 50 x 14 / 1000', l(b, 'LAT-L2'), 14);
 check('Roof story force = 20 x 50 x 7 / 1000', l(b, 'LAT-R'), 7);
