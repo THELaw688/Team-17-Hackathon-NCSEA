@@ -68,6 +68,28 @@ how we avoid two people rewriting the same file.
 
 ## Log
 
+### 2026-10-27 — Optional floor live load reduction (ASCE 7-22 4.7)
+**Who:** Zack (+ Claude Code) · **Branch:** feature/live-load-reduction
+
+- **What changed:** With `inputs.liveLoadReduction = true`, beams, girders, columns and footings
+  reduce their own floor live load: L = Lo (0.25 + 15 / sqrt(K_LL AT)) when K_LL AT ≥ 400 sq ft,
+  limited to 0.50 Lo (one floor) or 0.40 Lo (2+ floors). K_LL is 4 for columns and footings and
+  2 for beams and girders. Lo over 100 psf gets only the 20% reduction for 2+ floors. AT comes
+  from the `tribArea` rectangles, counting floors only. Each member gets `liveReduction = { KLL,
+  AT, floors, factor, removed }`, and the panel shows the reduction steps. New
+  `LP.liveReductionFactor`. Added 14 hand-calc checks (at 0.01% tolerance), and the
+  load-equals-area check now covers reduced members too (85 checks, all passing).
+- **Why:** real column and footing design uses reduced live load; leaving it out overstates
+  multi-story column loads by a lot (column B2 in the default 3-story building: 232.5 k vs 190.8 k).
+- **Files:** `src/shared/gravity.js`, `tests/shared/check.js`, `docs/load-path-explorer.md`,
+  `CHANGELOG.md`
+- **Heads up:** **Off by default, so no numbers change.** **Ask for Nick (role 1):** a "Live
+  load reduction (ASCE 7 4.7)" checkbox under Gravity loads, read into `inputs.liveLoadReduction`.
+  Path values stay unreduced, because each member reduces its own live load (that's how the code
+  works), so the load on a member can be less than the sum of the paths into it when this is on.
+  Not covered: deck (one-way slab area cap), roof live reduction (4.8), and assembly or parking
+  occupancies.
+
 ### 2026-10-27 — Optional member self-weight in the gravity analysis
 **Who:** Zack (+ Claude Code) · **Branch:** feature/self-weight
 
