@@ -18,8 +18,18 @@
       lateral: {
         type: 'wind',               // 'wind' | 'seismic'
         dir: 'x',                   // load direction: 'x' | 'y'
-        windPressure: 20,           // net psf on the projected face
-        Cs: 0.10,                   // seismic response coefficient
+        // 'override' uses the hand-typed windPressure and Cs. 'asce7' uses the inputs below (role 5's
+        // math in lateral.js). A missing mode means 'override', so older inputs keep working.
+        mode: 'override',           // 'override' | 'asce7'
+        windPressure: 20,           // override: net psf on the projected face
+        Cs: 0.10,                   // override: seismic response coefficient
+        riskCategory: 'II',         // asce7: 'I' | 'II' | 'III' | 'IV' (sets Ie)
+        SDS: 1.0,                   // asce7: design short-period spectral acceleration (g)
+        SD1: 0.6,                   // asce7: design 1-second spectral acceleration (g)
+        system: 'specialRCWall',    // asce7: lateral system key; role 5 maps it to R, Cd, Ct, x
+        windSpeed: 105,             // asce7: basic wind speed V (mph)
+        exposure: 'C',              // asce7: 'B' | 'C' | 'D'
+        accidentalTorsion: true,    // seismic, rigid diaphragm: add the 5% accidental eccentricity
         diaphragm: 'flexible'       // 'flexible' | 'rigid'
       }
     };

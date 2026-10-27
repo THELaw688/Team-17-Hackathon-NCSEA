@@ -23,7 +23,7 @@ Each role edits only its own files. Changes to the data model (`src/shared/model
 |---|---|---|
 | 1 Lead / integrator | `src/frontend/index.html`, `src/frontend/app.js`, `src/shared/model.js` | Wall editor (add/move walls), presets for real ZFA building types, merging at check-ins |
 | 2 3D scene | `src/frontend/scene.js` | Level isolate / section view, labels on grid bubbles at each level |
-| 3 3D load graphics | `src/frontend/overlay.js`, `src/shared/diagrams.js` | Smoother flow animation along members, deflected shape |
+| 3 3D load graphics | `src/frontend/overlay.js`, `src/frontend/lateral-arrows.js`, `src/shared/diagrams.js` | Smoother flow animation along members, deflected shape |
 | 4 Gravity engineer | `src/shared/gravity.js`, gravity part of `tests/shared/check.js` | Tributary area shading on selection, member self-weight, live load reduction (optional), more check cases |
 | 5 Lateral: loads + diaphragm | `LP.storyForces`, `LP.distribute` in `src/shared/lateral.js` | ASCE 7 inputs (V, exposure / SDS, R, Ie), accidental torsion (5%), semi-rigid note |
 | 6 Lateral: walls + foundation | `LP.runLateral` in `src/shared/lateral.js`, lateral part of `tests/shared/check.js` | Dead load resisting overturning (0.6D), braced frames (stretch), more check cases |
@@ -39,6 +39,7 @@ Roles 5 and 6 share `lateral.js`: 5 edits only `storyForces` and `distribute`, 6
 - `b.members{id}`: `{ id, type, label, level, a: {x, y, z}, b: {x, y, z}, results: { gravity, lateral } }`
   - types: `deck, beam, girder, column, footing, diaphragm, storyForce, chord, collector, wall, wallFooting`
   - `results[mode] = { value (kips, magnitude used for color), unit, calc: [lines shown in the panel], ...extras }`
+  - `results.gravity.tribArea = { rects: [{ x0, y0, x1, y1, z, area }], area }` on every deck, beam, girder, column and footing: the plan rectangles (ft, at elevation `z`) whose load the member carries, and their total in sq ft. A column lists one rectangle per level it supports (its own level first); a footing lists every level. Draw them as flat shaded patches with `LP.toWorld` to show the selected member's tributary area. Load = (D + L at `z`) x `area` for every rectangle, and `check.js` checks this for every member.
 - `b.paths[]`: `{ mode, from, to, value (kips), at: {x, y, z} connection point, note }`: one step of load transfer. The trace, the flow animation and the explain panel all read these.
 - `b.walls[]`: `{ id, name, dir ('x' runs along X at y = at, 'y' runs along Y at x = at), at, from, to, length }`
 - `b.xs` / `b.ys` and `b.xLabels` / `b.yLabels`: gridline positions and their names. The 3D view
@@ -48,6 +49,9 @@ Roles 5 and 6 share `lateral.js`: 5 edits only `storyForces` and `distribute`, 6
   plane. The view frames the gridline perpendicular to its plane and, in lateral mode, labels the
   modeled shear-wall story shears and base uplift. Click **Elevation** again to choose another line,
   or choose a camera preset to leave elevation mode.
+- `b.inputs.lateral`: `{ type ('wind' | 'seismic'), dir ('x' | 'y'), mode, diaphragm ('flexible' | 'rigid'), accidentalTorsion }` plus the inputs for each mode:
+  - `mode: 'override'` (default; a missing `mode` means this too): `windPressure` (psf), `Cs`
+  - `mode: 'asce7'`: `riskCategory` ('I'–'IV'), `SDS`, `SD1` (g), `system` (`'specialRCWall'`, `'ordinaryRCWall'`, `'specialMasonryWall'`), `windSpeed` (mph), `exposure` ('B' | 'C' | 'D'). Role 5 sets `LP.asce7Ready = true` in `lateral.js` once `storyForces` reads these; until then the app warns and uses the override values. Spec: `docs/role5-inputs.md` on `feature/lateral-loads`.
 - Units: ft, psf, kips, kip-ft. Plan x = east, plan y = north, z = elevation. The 3D view maps (x, y, z) to Three.js (x, z, -y).
 
 Member ids: `COL-B2-L2` (column at grid B2 below Level 2), `BM-L2-10-0`, `GD-L2-B-0`, `DECK-L2-0-0`, `DIA-R`, `LAT-R`, `CHORD-L2-W`, `COLL-L2-x0`, `WS-L2` (south wall, story below Level 2), `WS-FTG`, `FTG-B2`.
