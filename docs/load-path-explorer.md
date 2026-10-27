@@ -43,6 +43,13 @@ Roles 5 and 6 share `lateral.js`: 5 edits only `storyForces` and `distribute`, 6
   - `results.gravity.selfWeight` (kips): the part of `value` that is member self-weight, including what came from members above. 0 when self-weight is off. Columns also have `ownWeight`, their own story's weight.
 - `b.paths[]`: `{ mode, from, to, value (kips), at: {x, y, z} connection point, note }`: one step of load transfer. The trace, the flow animation and the explain panel all read these.
 - `b.walls[]`: `{ id, name, dir ('x' runs along X at y = at, 'y' runs along Y at x = at), at, from, to, length }`
+- `b.xs` / `b.ys` and `b.xLabels` / `b.yLabels`: gridline positions and their names. The 3D view
+  shows numbered X lines and lettered Y lines with bubbles; click a bubble to rename its
+  gridline. Names persist when the model is rebuilt, and **Show gridlines** hides or shows both.
+- In the 3D view, choose **Elevation** and click a gridline or bubble to isolate the frame on that
+  plane. The view frames the gridline perpendicular to its plane and, in lateral mode, labels the
+  modeled shear-wall story shears and base uplift. Click **Elevation** again to choose another line,
+  or choose a camera preset to leave elevation mode.
 - `b.inputs.lateral`: `{ type ('wind' | 'seismic'), dir ('x' | 'y'), mode, diaphragm ('flexible' | 'rigid'), accidentalTorsion }` plus the inputs for each mode:
   - `mode: 'override'` (default; a missing `mode` means this too): `windPressure` (psf), `Cs`
   - `mode: 'asce7'`: `riskCategory` ('I'–'IV'), `SDS`, `SD1` (g), `system` (`'specialRCWall'`, `'ordinaryRCWall'`, `'specialMasonryWall'`), `windSpeed` (mph), `exposure` ('B' | 'C' | 'D'). Role 5 sets `LP.asce7Ready = true` in `lateral.js` once `storyForces` reads these; until then the app warns and uses the override values. Spec: `docs/role5-inputs.md` on `feature/lateral-loads`.
