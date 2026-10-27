@@ -41,6 +41,9 @@ Roles 5 and 6 share `lateral.js`: 5 edits only `storyForces` and `distribute`, 6
   - `results[mode] = { value (kips, magnitude used for color), unit, calc: [lines shown in the panel], ...extras }`
 - `b.paths[]`: `{ mode, from, to, value (kips), at: {x, y, z} connection point, note }`: one step of load transfer. The trace, the flow animation and the explain panel all read these.
 - `b.walls[]`: `{ id, name, dir ('x' runs along X at y = at, 'y' runs along Y at x = at), at, from, to, length }`
+- `b.inputs.lateral`: `{ type ('wind' | 'seismic'), dir ('x' | 'y'), mode, diaphragm ('flexible' | 'rigid'), accidentalTorsion }` plus the inputs for each mode:
+  - `mode: 'override'` (default; a missing `mode` means this too): `windPressure` (psf), `Cs`
+  - `mode: 'asce7'`: `riskCategory` ('I'–'IV'), `SDS`, `SD1` (g), `system` (`'specialRCWall'`, `'ordinaryRCWall'`, `'specialMasonryWall'`), `windSpeed` (mph), `exposure` ('B' | 'C' | 'D'). Role 5 sets `LP.asce7Ready = true` in `lateral.js` once `storyForces` reads these; until then the app warns and uses the override values. Spec: `docs/role5-inputs.md` on `feature/lateral-loads`.
 - Units: ft, psf, kips, kip-ft. Plan x = east, plan y = north, z = elevation. The 3D view maps (x, y, z) to Three.js (x, z, -y).
 
 Member ids: `COL-B2-L2` (column at grid B2 below Level 2), `BM-L2-10-0`, `GD-L2-B-0`, `DECK-L2-0-0`, `DIA-R`, `LAT-R`, `CHORD-L2-W`, `COLL-L2-x0`, `WS-L2` (south wall, story below Level 2), `WS-FTG`, `FTG-B2`.
