@@ -61,6 +61,23 @@ how we avoid two people rewriting the same file.
 
 ## Log
 
+### 2026-10-27 — Add ASCE 7 lateral inputs to the panel (role 5's ask)
+**Who:** Nick (+ Claude Code) · **Branch:** feature/lateral-inputs
+
+- **What changed:** The Lateral loads panel has an Input mode toggle. **Override** (default) shows
+  the existing Wind (psf) and Seismic Cs boxes. **ASCE 7** shows risk category, SDS, SD1, lateral
+  system, wind speed V and exposure. An Accidental torsion checkbox applies to both. All of them
+  land in `inputs.lateral` under the keys from Josh's `docs/role5-inputs.md`.
+- **Why:** role 5 is replacing the hand-typed Cs and psf with ASCE 7 calculations and needs these
+  inputs; Override keeps the simple teaching version.
+- **Files:** `src/shared/model.js`, `src/frontend/index.html`, `src/frontend/app.js`,
+  `docs/load-path-explorer.md`, `CHANGELOG.md`
+- **Heads up:** **For role 5:** the default is `mode: 'override'`, and a missing `mode` means
+  override too, so today's numbers and the hand-calc tests don't change. Set `LP.asce7Ready = true`
+  in `lateral.js` once `storyForces` reads the ASCE 7 inputs; until then, ASCE 7 mode shows a
+  warning and uses the override values. System keys: `specialRCWall`, `ordinaryRCWall`,
+  `specialMasonryWall`. `accidentalTorsion` does nothing on `dev` until role 5's torsion change merges.
+
 ### 2026-10-27 — Fix overlapping labels in plan view
 **Who:** Nick (+ Claude Code) · **Branch:** fix/plan-label-overlap
 
