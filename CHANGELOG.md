@@ -122,6 +122,15 @@ how we avoid two people rewriting the same file.
   Not covered: deck (one-way slab area cap), roof live reduction (4.8), and assembly or parking
   occupancies.
 
+### 2026-10-27 — Make member detail sections collapsible
+**Who:** Kevin (+ Copilot SDK in VS Code) · **Branch:** feature/collapsible-details
+
+- **What changed:** Made the member details panel's load-source, load-destination and calculation
+  sections native expandable dropdowns, open by default.
+- **Why:** Let users collapse subcategories to focus on the member information they need.
+- **Files:** `src/frontend/explain.js`, `src/frontend/index.html`, `docs/load-path-explorer.md`,
+  `CHANGELOG.md`
+- **Heads up:** Uses native accessible disclosure controls; no dependencies added.
 ### 2026-10-27 — Add gridline elevation views
 **Who:** Kevin (+ Copilot SDK in VS Code) · **Branch:** feature/named-gridlines
 

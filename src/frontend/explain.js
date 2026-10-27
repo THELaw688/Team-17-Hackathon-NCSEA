@@ -65,13 +65,14 @@
     const list = (arr, key) => arr.length
       ? '<ul>' + arr.map(p => `<li>${link(b, p[key])}: <b>${r(p.value)} k</b>${p.note ? ` <span class="muted">(${p.note})</span>` : ''}</li>`).join('') + '</ul>'
       : '<p class="muted">None</p>';
+    const section = (title, content) => `<details class="explain-section" open><summary>${title}</summary>${content}</details>`;
     return `
       <h2>${m.label}</h2>
       ${res ? `<div class="big">${r(res.value)} ${res.unit}</div>` : '<p class="muted">Not part of the load path in this mode.</p>'}
       ${note ? `<p>${note}</p>` : ''}
-      <h3>Load comes from</h3>${list(ins, 'from')}
-      <h3>Load goes to</h3>${list(outs, 'to')}
-      ${res && res.calc ? `<h3>Calculation</h3><ol class="calc">${res.calc.map(c => `<li>${c}</li>`).join('')}</ol>` : ''}`;
+      ${section('Load comes from', list(ins, 'from'))}
+      ${section('Load goes to', list(outs, 'to'))}
+      ${res && res.calc ? section('Calculation', `<ol class="calc">${res.calc.map(c => `<li>${c}</li>`).join('')}</ol>`) : ''}`;
   };
 
   /**
