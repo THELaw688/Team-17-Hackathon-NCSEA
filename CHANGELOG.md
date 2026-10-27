@@ -79,6 +79,16 @@ how we avoid two people rewriting the same file.
   `docs/load-path-explorer.md`, `CHANGELOG.md`
 - **Heads up:** Existing symmetric and eccentric wall presets remain unchanged.
 
+### 2026-10-27 — Make member detail sections collapsible
+**Who:** Kevin (+ Copilot SDK in VS Code) · **Branch:** feature/collapsible-details
+
+- **What changed:** Made the member details panel's load-source, load-destination and calculation
+  sections native expandable dropdowns, open by default, with clear disclosure arrows and guidance.
+- **Why:** Let users collapse subcategories to focus on the member information they need.
+- **Files:** `src/frontend/explain.js`, `src/frontend/index.html`, `docs/load-path-explorer.md`,
+  `CHANGELOG.md`
+- **Heads up:** Uses native accessible disclosure controls; no dependencies added.
+
 ### 2026-10-27 — ASCE 7 seismic story forces (Input mode: ASCE 7)
 **Who:** Josh (+ Claude Code) · **Branch:** feature/lateral-loads
 
