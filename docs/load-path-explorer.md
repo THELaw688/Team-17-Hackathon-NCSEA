@@ -23,7 +23,7 @@ Each role edits only its own files. Changes to the data model (`src/shared/model
 |---|---|---|
 | 1 Lead / integrator | `src/frontend/index.html`, `src/frontend/app.js`, `src/shared/model.js` | Wall editor (add/move walls), presets for real ZFA building types, merging at check-ins |
 | 2 3D scene | `src/frontend/scene.js` | Grid line bubbles (A, B, 1, 2), camera presets (plan, elevation, iso), level isolate / section view |
-| 3 3D load graphics | `src/frontend/overlay.js` | Smoother flow animation along members, deflected shape, diaphragm shear and moment diagrams drawn on the floor, collector force diagram |
+| 3 3D load graphics | `src/frontend/overlay.js`, `src/shared/diagrams.js` | Smoother flow animation along members, deflected shape, plan-view camera for reading the diaphragm diagrams |
 | 4 Gravity engineer | `src/shared/gravity.js`, gravity part of `tests/shared/check.js` | Tributary area shading on selection, member self-weight, live load reduction (optional), more check cases |
 | 5 Lateral: loads + diaphragm | `LP.storyForces`, `LP.distribute` in `src/shared/lateral.js` | ASCE 7 inputs (V, exposure / SDS, R, Ie), accidental torsion (5%), semi-rigid note |
 | 6 Lateral: walls + foundation | `LP.runLateral` in `src/shared/lateral.js`, lateral part of `tests/shared/check.js` | Dead load resisting overturning (0.6D), braced frames (stretch), more check cases |

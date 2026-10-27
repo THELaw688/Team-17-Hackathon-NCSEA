@@ -29,7 +29,8 @@
         <h2>${state.mode === 'gravity' ? 'Gravity load path' : 'Lateral load path'}</h2>
         <p>${state.mode === 'gravity'
           ? 'Load starts on the deck, goes to the filler beams, then the girders, then the columns, and ends at the footings. Moving dots show the flow; color shows force (blue light, red heavy).'
-          : `${b.inputs.lateral.type === 'wind' ? 'Wind' : 'Seismic'} load in the ${b.inputs.lateral.dir.toUpperCase()} direction goes into each floor diaphragm, along the collectors into the shear walls, and down to the wall footings.`}</p>
+          : `${b.inputs.lateral.type === 'wind' ? 'Wind' : 'Seismic'} load in the ${b.inputs.lateral.dir.toUpperCase()} direction goes into each floor diaphragm, along the collectors into the shear walls, and down to the wall footings.</p>
+          <p>The floor acts like a deep beam lying flat. Its <b style="color:#2b7bba">shear</b> and <b style="color:#d9822b">moment</b> diagrams are drawn on the roof, or on the level of the member you click; <b style="color:#9b59b6">collector</b> force is drawn as a fence along each wall line. Switch the diaphragm between flexible and rigid to see them change.`}</p>
         <p><b>Total gravity load:</b> ${LP.round(total, 1)} kips<br><b>Base shear:</b> ${LP.round(V, 1)} kips</p>
         <p class="muted">Click any member to see where its load comes from, where it goes, and the calculation.</p>`;
     } else {
@@ -63,6 +64,7 @@
   $('latDir').addEventListener('change', () => setMode('lateral'));
   $('diaphragm').addEventListener('change', () => setMode('lateral'));
   $('flow').addEventListener('change', e => { view.overlay.showFlow = e.target.checked; view.refresh(); });
+  $('diagrams').addEventListener('change', e => { view.overlay.showDiagrams = e.target.checked; view.refresh(); });
   $('clear').addEventListener('click', () => view.select(null));
   $('panel').addEventListener('click', e => {
     const id = e.target.dataset && e.target.dataset.id;
