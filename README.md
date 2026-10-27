@@ -224,6 +224,35 @@ Either way, open a pull request into `dev` on GitHub afterwards.
   someone other than the author should have looked at it.
 - Merging to `main` happens when `dev` is stable and demo-ready.
 
+### Automated staleness guards
+
+Two things enforce "don't work off something old" so it doesn't depend on anyone remembering:
+
+| Guard | What it does | Setup |
+|---|---|---|
+| `.githooks/pre-commit` | Fetches before every commit and **blocks** it if your branch is behind `origin`. | `git config core.hooksPath .githooks` — **run once per clone** |
+| `.claude/settings.json` | Makes every Claude Code session pull and print the newest CHANGELOG entries before work starts. | none — works on clone |
+
+Git deliberately won't auto-enable a hook that arrives in a repository, so the one-time config
+command is unavoidable. Run it right after cloning:
+
+```bash
+git config core.hooksPath .githooks
+```
+
+Overrides, when you genuinely need them:
+
+```bash
+ALLOW_STALE=1 git commit -m "..."   # commit despite being behind
+git commit --no-verify -m "..."     # skip all hooks
+```
+
+Merges and rebases are exempt — they're how you *stop* being behind. If you're offline the hook
+warns and lets the commit through rather than stranding you.
+
+Copilot and Cursor users get the git hook but not the session hook; those tools have no equivalent,
+so the README rules are what they run on.
+
 ### Pull before you push, always
 
 The most common way to lose work in a hackathon is two people editing the same file without
@@ -248,7 +277,14 @@ git push --tags
 ```bash
 git clone https://github.com/THELaw688/Team-24-Hackathon-NCSEA.git
 cd Team-24-Hackathon-NCSEA
+git config core.hooksPath .githooks    # enables the staleness guard - do this once
 git checkout dev
+```
+
+Windows users, once per machine, so `scripts/sync.ps1` can run:
+
+```powershell
+Set-ExecutionPolicy -Scope CurrentUser RemoteSigned
 ```
 
 Then read this file, read [CHANGELOG.md](CHANGELOG.md) to see where the project currently stands,

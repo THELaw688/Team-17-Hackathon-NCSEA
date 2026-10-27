@@ -58,6 +58,25 @@ how we avoid two people rewriting the same file.
 
 ## Log
 
+### 2026-10-27 — Add automated staleness guards
+**Who:** Sam (+ Claude Code) · **Branch:** main
+
+- **What changed:** Added `.githooks/pre-commit`, which fetches and refuses a commit when your
+  branch is behind `origin`, and `scripts/session-start.sh` plus `.claude/settings.json`, which make
+  every Claude Code session pull and print the newest CHANGELOG entries before work begins.
+- **Why:** The README and this file asked people to pull first, but nothing enforced it. Within an
+  hour of writing that rule we hit it for real: a README rename was pushed to GitHub while local
+  work renamed the same line, and the two had to be merged by hand. Conventions don't survive
+  hackathon pace; hooks do.
+- **Files:** `.githooks/pre-commit`, `scripts/session-start.sh`, `.claude/settings.json`,
+  `README.md`, `CHANGELOG.md`
+- **Heads up:** **The pre-commit hook does nothing until you run `git config core.hooksPath
+  .githooks` once in your clone** — git won't enable a repo-supplied hook automatically, by design.
+  The Claude Code hook needs no setup beyond cloning. Overrides: `ALLOW_STALE=1 git commit` for a
+  deliberate stale commit, `--no-verify` to skip hooks entirely. Merges and rebases are exempt, as
+  they're the cure rather than the disease. Copilot and Cursor users get the git hook but not the
+  session hook — those tools have no equivalent.
+
 ### 2026-10-27 — Rename team to Table 17, add one-command sync script
 **Who:** Sam (+ Claude Code) · **Branch:** main
 
