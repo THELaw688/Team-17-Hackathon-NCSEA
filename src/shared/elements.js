@@ -31,6 +31,45 @@
     return s;
   };
 
+  // Conversion to feet from each length unit an IFC or ETABS file might be written in.
+  LP.LENGTH_SCALES = { ft: 1, in: 1 / 12, m: 3.280839895, mm: 0.003280839895, cm: 0.03280839895 };
+
+  /**
+   * Guess what length unit a model is in, from the storey heights it implies.
+   *
+   * A silent unit error is the worst failure this importer can have: a building 3.28x too large
+   * still draws perfectly and still analyses, it is just wrong. Rather than trust a file's declared
+   * units (Revit exports get this wrong often enough to matter), we check the answer against
+   * something every building obeys - a storey is about 10 to 15 ft, and never 2 ft or 200 ft.
+   *
+   * @param {number[]} levelElevations distinct level elevations in the file's own units
+   * @returns {object} { unit, scale, storyHeight, confident } - scale multiplies to feet
+   */
+  LP.detectLengthScale = function (levelElevations) {
+    const zs = (levelElevations || []).filter(Number.isFinite).slice().sort((p, q) => p - q);
+    if (zs.length < 2) return { unit: 'm', scale: LP.LENGTH_SCALES.m, storyHeight: null, confident: false };
+
+    // Median gap between levels, which is robust against one tall lobby storey.
+    const gaps = [];
+    for (let i = 1; i < zs.length; i++) gaps.push(zs[i] - zs[i - 1]);
+    gaps.sort((p, q) => p - q);
+    const gap = gaps[Math.floor(gaps.length / 2)];
+
+    // A storey between 8 and 20 ft is the test. Pick the unit whose conversion lands inside it.
+    const candidates = ['ft', 'in', 'm', 'mm', 'cm'];
+    const hits = candidates.filter(u => {
+      const ft = gap * LP.LENGTH_SCALES[u];
+      return ft >= 8 && ft <= 20;
+    });
+    if (hits.length === 1) {
+      return { unit: hits[0], scale: LP.LENGTH_SCALES[hits[0]], storyHeight: gap * LP.LENGTH_SCALES[hits[0]], confident: true };
+    }
+    // Ambiguous or nothing fits: fall back to metres, the usual IFC unit, and say we are unsure so
+    // the UI can show the resulting building size and ask a human to check it.
+    const u = hits.length ? hits[0] : 'm';
+    return { unit: u, scale: LP.LENGTH_SCALES[u], storyHeight: gap * LP.LENGTH_SCALES[u], confident: false };
+  };
+
   /**
    * Make a StructuralElement, filling in the fields callers usually leave out.
    * @param {object} e partial element; `kind` is required

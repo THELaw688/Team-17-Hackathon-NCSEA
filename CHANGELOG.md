@@ -61,6 +61,28 @@ how we avoid two people rewriting the same file.
 
 ## Log
 
+### 2026-10-27 — Add IFC drop zone and import
+**Who:** Sam (+ Claude Code) · **Branch:** dev
+
+- **What changed:** A drop zone at the top of the controls panel takes a dragged or picked `.ifc`
+  file. `src/shared/import-ifc.js` parses it with web-ifc (WASM, from CDN), reads columns, beams,
+  members, slabs, walls, footings and plates, and returns neutral elements;
+  `src/frontend/dropzone.js` handles the UI and reports what was found. Imported models are built
+  with `LP.modelFromElements` and drawn. Added `LP.detectLengthScale`.
+- **Why:** real Revit models are the point — a teaching tool that only draws a generated grid can't
+  be pointed at a building anyone actually designed.
+- **Files:** `src/shared/import-ifc.js`, `src/frontend/dropzone.js`, `src/shared/elements.js`,
+  `src/frontend/index.html`, `src/frontend/app.js`, `tests/shared/check-import.js`, `CHANGELOG.md`
+- **Heads up:** **An imported model draws but is not analysed.** `gravity.js` and `lateral.js`
+  address members by generated ids (`COL-B2-L2`) and read `b.beamXs`, neither of which an imported
+  building has — teaching them to read imported geometry is role 4 and role 6 work. The panel says
+  so rather than showing a blank load path. **Untested against a real IFC file** — no `.ifc` was
+  available on this machine; the parse path needs one before anyone relies on it. Units are detected
+  from implied storey heights rather than the file's declaration, because a model 3.28x too big
+  draws fine and is silently wrong; the panel shows overall size so a human can check. Element
+  geometry comes from world-space bounding boxes, so a sloped or curved member becomes its box.
+  `.e2k` is routed but not implemented yet.
+
 ### 2026-10-27 — Spec and foundation for IFC / ETABS import and in-program editing
 **Who:** Sam (+ Claude Code) · **Branch:** dev
 

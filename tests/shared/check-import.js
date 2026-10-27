@@ -113,6 +113,27 @@ checkEq('with a direction', bw.walls[0].dir, 'x');
 check('and a length', bw.walls[0].length, 30);
 checkEq('and creates a wall line for the collectors', bw.wallLines.length, 1);
 
+// --- Unit detection -----------------------------------------------------------------------------
+// The dangerous failure: a building 3.28x too big draws and analyses perfectly, it is just wrong.
+console.log('\nUnit detection');
+checkEq('feet are recognised', LP.detectLengthScale([0, 14, 27, 40]).unit, 'ft');
+checkEq('metres are recognised', LP.detectLengthScale([0, 4, 8, 12]).unit, 'm');
+checkEq('millimetres are recognised', LP.detectLengthScale([0, 4000, 8000, 12000]).unit, 'mm');
+checkEq('inches are recognised', LP.detectLengthScale([0, 168, 336]).unit, 'in');
+check('the scale converts to feet', LP.detectLengthScale([0, 4000, 8000]).scale * 4000, 13.123);
+checkEq('a confident read says so', LP.detectLengthScale([0, 4000, 8000]).confident, true);
+
+// One tall lobby storey must not drag the median off.
+checkEq('a tall ground storey does not confuse it', LP.detectLengthScale([0, 24, 37, 50, 63]).unit, 'ft');
+
+// Too little information to tell, so it must say it is unsure rather than guess silently.
+checkEq('a single level is not confident', LP.detectLengthScale([0]).confident, false);
+// 500 is deliberately NOT the case to use here: 500 cm is 16.4 ft, a believable storey, so a
+// confident 'cm' read is right. Use a spacing no length unit can turn into a storey.
+checkEq('centimetres are recognised', LP.detectLengthScale([0, 500, 1000]).unit, 'cm');
+checkEq('an impossible spacing is not confident', LP.detectLengthScale([0, 100000, 200000]).confident, false);
+checkEq('and falls back to metres', LP.detectLengthScale([0, 100000, 200000]).unit, 'm');
+
 // --- Degenerate input ---------------------------------------------------------------------------
 console.log('\nDegenerate input');
 const empty = LP.modelFromElements([]);
