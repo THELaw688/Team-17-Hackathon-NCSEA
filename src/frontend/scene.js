@@ -65,7 +65,7 @@
         btn.title = {
           '3d': 'Isometric view', plan: 'Looking down from above',
           front: 'Looking north at the south face', side: 'Looking west at the east face',
-          elevation: 'Choose a gridline to frame its elevation'
+          elevation: 'Choose Elevation, then click a gridline to isolate its frame and lateral reactions.'
         }[key];
         btn.style.cssText = 'font:inherit;font-size:12px;padding:4px 10px;border:1px solid #d5dae0;border-radius:4px;background:#fff;cursor:pointer;';
         btn.addEventListener('click', () => this.setView(key));
