@@ -58,6 +58,21 @@ how we avoid two people rewriting the same file.
 
 ## Log
 
+### 2026-10-27 — Add master task list
+**Who:** Zack (+ Claude Code) · **Branch:** feature/task-list
+
+- **What changed:** Added `docs/tasks.md`, a checklist of everything left to build in the load path
+  explorer. It keeps the seven roles from `docs/load-path-explorer.md` and adds six workstreams that
+  fall between them: tables + 2D diagrams, integration, verification, demo readiness, repo setup,
+  and the pitch. It also lists the decisions to settle first and the order of work.
+- **Why:** gives the team one place to see what's left, who owns it, and what matters for the demo.
+  Some needed work has no role yet: tables of results, equilibrium checks, and running the demo
+  without internet.
+- **Files:** `docs/tasks.md`, `CHANGELOG.md`
+- **Heads up:** owners are blank; put your name on a workstream when you take it. Workstreams 8–11
+  have no role yet. Items marked Must were picked without the judging criteria, so re-sort them
+  once someone pastes those into `docs/`.
+
 ### 2026-10-27 — Add load path explorer: 3D app, gravity + lateral analysis, hand-calc checks
 **Who:** Nick (+ Claude Code) · **Branch:** feature/load-path-explorer
 
