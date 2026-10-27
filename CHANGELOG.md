@@ -52,7 +52,9 @@ markers, order the two by date, done. Never resolve a conflict here by discardin
 Add a line when you start something that will take a while, and remove it when you're done. This is
 how we avoid two people rewriting the same file.
 
-- _(nothing in progress)_
+- **Zack (+ Claude Code)** — Role 4, gravity: `src/shared/gravity.js` and the gravity part of
+  `tests/shared/check.js` (tributary area for the selected member, self-weight, more check cases).
+  Branch `feature/gravity`. I won't touch `lateral.js` or the lateral checks.
 
 ---
 
