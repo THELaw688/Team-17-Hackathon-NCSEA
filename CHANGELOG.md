@@ -68,6 +68,19 @@ how we avoid two people rewriting the same file.
 
 ## Log
 
+### 2026-10-27 — Move the load path caption bars to the bottom right
+**Who:** Zack (+ Claude Code) · **Branch:** fix/caption-bar-bottom-right
+
+- **What changed:** The stage caption bar (chips plus the line of text) for both the lateral
+  arrows and the gravity glow now sits in the bottom-right corner of the 3D view, 520 px wide,
+  instead of centred along the bottom.
+- **Why:** centred, it covered the middle of the building, which is where the load path is drawn.
+  The bottom right keeps it clear of the model and of the force legend at the bottom left.
+- **Files:** `src/frontend/lateral-arrows.js`, `src/frontend/gravity-flow.js` (one style line each),
+  `CHANGELOG.md`
+- **Heads up:** `lateral-arrows.js` is Nick's (role 3); this changes only the bar's position and
+  width. Both bars keep the same style so they sit in the same place in either mode.
+
 ### 2026-10-27 — Default a missing risk category to II in the seismic Cs
 **Who:** Nick (+ Claude Code) · **Branch:** fix/default-risk-category
 
