@@ -45,6 +45,11 @@ Roles 5 and 6 share `lateral.js`: 5 edits only `storyForces` and `distribute`, 6
 - `b.paths[]`: `{ mode, from, to, value (kips), at: {x, y, z} connection point, note }`: one step of load transfer. The trace, the flow animation and the explain panel all read these.
 - In the member details panel, **Load comes from**, **Load goes to** and **Calculation** are expandable sections; all are open by default.
 - `b.walls[]`: `{ id, name, dir ('x' runs along X at y = at, 'y' runs along Y at x = at), at, from, to, length }`
+- In **Custom layout**, assign a wall to an X or Y gridline, then set its start distance from the
+  south/west end and its length in feet. Up to five non-overlapping walls may be placed on each
+  gridline; placements must fit within the selected line. Symmetric and eccentric presets remain
+  available.
+
 - `b.xs` / `b.ys` and `b.xLabels` / `b.yLabels`: gridline positions and their names. The 3D view
   shows numbered X lines and lettered Y lines with bubbles; click a bubble to rename its
   gridline. Names persist when the model is rebuilt, and **Show gridlines** hides or shows both.
