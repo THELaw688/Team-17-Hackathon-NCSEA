@@ -68,6 +68,20 @@ how we avoid two people rewriting the same file.
 
 ## Log
 
+### 2026-10-27 — Add steel lateral-system choices and schematic graphics
+**Who:** Kevin (+ Copilot SDK in VS Code) · **Branch:** feature/steel-lateral-systems
+
+- **What changed:** Added special steel concentrically braced frames (R = 6), special steel moment
+  frames (R = 8), and buckling-restrained braced frames (R = 8) to the lateral-system selector.
+  ASCE 7 seismic calculations use each system's R factor; the 3D view distinguishes portal frames,
+  diagonal braces, BRB cores, and shear walls.
+- **Why:** Let users compare lateral-system types and their effect on seismic base shear.
+- **Files:** `src/frontend/app.js`, `src/frontend/explain.js`, `src/frontend/index.html`,
+  `src/frontend/scene.js`, `src/shared/lateral.js`, `src/shared/model.js`,
+  `tests/shared/check.js`, `docs/load-path-explorer.md`
+- **Heads up:** Steel-frame forces use the existing simplified line-length distribution; this is
+  schematic, not frame analysis or design.
+
 ### 2026-10-27 — Draw gravity load as glowing strips instead of dots
 **Who:** Zack (+ Claude Code), for role 3 review · **Branch:** feature/gravity-glow
 
@@ -115,7 +129,7 @@ how we avoid two people rewriting the same file.
   Not included: torsional wind cases 2-4 (Fig. 27.3-8), parapets, roof uplift, flexible-building
   gust factor. Hand checks, exposure C, 105 mph: app default building, X, V = 14.24 + 14.86 + 7.86
   = 36.96 k (Y: 76.6 k; exposure B 26.88 k with the 16 psf minimum governing at Level 2; D 44.11 k);
-  test building (60 x 50, 2 @ 14 ft), X, 24.76 k. Role 6: good numbers for ASCE 7 wind check cases.
+  test   building (60 x 50, 2 @ 14 ft), X, 24.76 k. Role 6: good numbers for ASCE 7 wind check cases.
 
 ### 2026-10-27 — Configure shear wall gridlines and lengths
 **Who:** Kevin (+ Copilot SDK in VS Code) · **Branch:** feature/shear-wall-layout

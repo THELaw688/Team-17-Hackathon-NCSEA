@@ -13,7 +13,7 @@
       floorDead: 80, floorLive: 50, // psf
       roofDead: 30, roofLive: 20,   // psf
       beamSpaces: 3,                // filler beam spaces per X bay
-      wallPreset: 'symmetric',      // 'symmetric' | 'eccentric'
+      wallPreset: 'symmetric',      // 'symmetric' | 'eccentric' | 'custom'
       walls: null,                  // explicit wall list overrides the preset
       lateral: {
         type: 'wind',               // 'wind' | 'seismic'
@@ -26,7 +26,7 @@
         riskCategory: 'II',         // asce7: 'I' | 'II' | 'III' | 'IV' (sets Ie)
         SDS: 1.0,                   // asce7: design short-period spectral acceleration (g)
         SD1: 0.6,                   // asce7: design 1-second spectral acceleration (g)
-        system: 'specialRCWall',    // asce7: lateral system key; role 5 maps it to R, Cd, Ct, x
+        system: 'specialRCWall',    // ASCE 7 seismic system and schematic lateral-system type
         windSpeed: 105,             // asce7: basic wind speed V (mph)
         exposure: 'C',              // asce7: 'B' | 'C' | 'D'
         accidentalTorsion: true,    // seismic, rigid diaphragm: add the 5% accidental eccentricity
@@ -155,15 +155,53 @@
     });
 
     b.walls = inputs.walls || LP.presetWalls(inputs.wallPreset, xs, ys);
+    const system = LP.SYSTEMS && LP.SYSTEMS[inputs.lateral.system];
+    b.systemKind = system ? system.graphic : 'wall';
+    b.systemGraphics = [];
     const pt = (w, s) => w.dir === 'x' ? { x: s, y: w.at } : { x: w.at, y: s };
     b.walls.forEach(w => {
       w.length = w.to - w.from;
+      if (b.systemKind !== 'wall') {
+        w.name = `${system.layoutName} on ${w.dir === 'x' ? 'Y' : 'X'} = ${w.at} ft`;
+      }
       b.levels.forEach(lv => {
-        LP.addMember(b, { id: `${w.id}-${lv.tag}`, type: 'wall', level: lv.index, wall: w.id,
+        const id = `${w.id}-${lv.tag}`;
+        LP.addMember(b, { id, type: 'wall', level: lv.index, wall: w.id, systemKind: b.systemKind,
           label: `${w.name}, story below ${lv.name}`,
           a: Object.assign(pt(w, w.from), { z: lv.below }), b: Object.assign(pt(w, w.to), { z: lv.elev }) });
+        if (b.systemKind !== 'wall') {
+          const along = w.dir === 'x' ? xs : ys;
+          const stations = [w.from, ...along.filter(s => s > w.from && s < w.to), w.to];
+          const addGraphic = (type, a, end) => b.systemGraphics.push({ id, type, a, b: end });
+          const pointAt = (station, z) => Object.assign(pt(w, station), { z });
+          stations.forEach(s => addGraphic('frameColumn', pointAt(s, lv.below), pointAt(s, lv.elev)));
+          for (let i = 1; i < stations.length; i++) {
+            const from = stations[i - 1], to = stations[i];
+            addGraphic('frameBeam', pointAt(from, lv.elev), pointAt(to, lv.elev));
+            if (b.systemKind === 'momentFrame') {
+              [from, to].forEach(s => addGraphic('momentJoint', pointAt(s, lv.elev), pointAt(s, lv.elev)));
+            } else {
+              const braceType = b.systemKind === 'brbf' ? 'brbfBrace' : 'frameBrace';
+              const diagonals = [
+                [pointAt(from, lv.below), pointAt(to, lv.elev)],
+                [pointAt(to, lv.below), pointAt(from, lv.elev)]
+              ];
+              diagonals.forEach(([a, end]) => {
+                addGraphic(braceType, a, end);
+                if (b.systemKind === 'brbf') {
+                  const middle = { x: (a.x + end.x) / 2, y: (a.y + end.y) / 2, z: (a.z + end.z) / 2 };
+                  const halfCore = { x: (end.x - a.x) * 0.1, y: (end.y - a.y) * 0.1, z: (end.z - a.z) * 0.1 };
+                  addGraphic('brbfCore',
+                    { x: middle.x - halfCore.x, y: middle.y - halfCore.y, z: middle.z - halfCore.z },
+                    { x: middle.x + halfCore.x, y: middle.y + halfCore.y, z: middle.z + halfCore.z });
+                }
+              });
+            }
+          }
+        }
       });
-      LP.addMember(b, { id: `${w.id}-FTG`, type: 'wallFooting', wall: w.id, label: `${w.name} footing`,
+      LP.addMember(b, { id: `${w.id}-FTG`, type: 'wallFooting', wall: w.id,
+        label: b.systemKind === 'wall' ? `${w.name} footing` : `${w.name} base`,
         a: Object.assign(pt(w, w.from), { z: 0 }), b: Object.assign(pt(w, w.to), { z: 0 }) });
     });
 

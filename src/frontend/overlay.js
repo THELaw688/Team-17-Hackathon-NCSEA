@@ -122,6 +122,7 @@
 
     elevationReactions(b, elevation, k) {
       if (b.fromImport) return;
+      const system = LP.SYSTEMS[b.inputs.lateral.system] || LP.SYSTEMS.specialRCWall;
       const coordinate = (elevation.axis === 'x' ? b.xs : b.ys)[elevation.index];
       const walls = b.walls.filter(w =>
         (elevation.axis === 'x' ? w.dir === 'y' : w.dir === 'x') &&
@@ -146,7 +147,9 @@
         const center = LP.center(baseMember);
         if (w.dir === 'x') center.x += 3;
         else center.y += 3;
-        this.label(`${w.name} base: V ${k(base.value)}, uplift ${k(base.holdDown)}`, LP.toWorld(Object.assign(center, { z: -2 })), 0.8);
+        const baseReaction = system.graphic === 'wall' ? `uplift ${k(base.holdDown)}`
+          : `end-force couple ${k(base.holdDown)}`;
+        this.label(`${w.name} base: V ${k(base.value)}, ${baseReaction}`, LP.toWorld(Object.assign(center, { z: -2 })), 0.8);
       });
     }
 

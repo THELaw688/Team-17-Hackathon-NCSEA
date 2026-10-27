@@ -1,6 +1,6 @@
 // Lateral load path as animated arrows (owner: role 3, 3D load graphics).
 // Five stages play one at a time for one level: load on the building, the diaphragm handing it to
-// the wall lines, collectors, shear walls, foundation. A caption bar in the 3D view names the stage.
+// the lateral-system lines, collectors, the system, and its base reactions.
 // Arrow sizes come from the analysis, on one scale, so a bigger arrow always means more force.
 (function (root) {
   const LP = root.LP = root.LP || {};
@@ -105,6 +105,10 @@
       this.clock = 0;
       this.bar.style.display = '';
       const L = b.inputs.lateral, dir = L.dir, lv = b.levels[li], t = lv.tag, z = lv.elev;
+      const system = LP.SYSTEMS[L.system] || LP.SYSTEMS.specialRCWall;
+      const isWall = system.graphic === 'wall';
+      this.chips[3].textContent = `4 ${system.layoutPlural}`;
+      this.chips[4].textContent = isWall ? '5 Foundation' : '5 Frame bases';
       const dv = dir === 'x' ? { x: 1, y: 0 } : { x: 0, y: 1 }, DV = D(dv.x, dv.y);
       const depth = dir === 'x' ? b.Ly : b.Lx, len = dir === 'x' ? b.Lx : b.Ly;
       // (s, o): s runs across the load (along the windward face), o runs with the load.
@@ -166,8 +170,8 @@
         this.label(`${r1(Math.abs(R))} k → ${l.name} (${r1(Math.abs(R) / Ll * 1000)} plf)`, P(c + (c < depth / 2 ? -5 : 5), len / 2, 3), 1, 0.85);
         capDia.push(`${r1(Math.abs(R))} k to ${l.name}`);
       });
-      this.captions[1] = `The floor acts like a flat beam spanning between the wall lines. The load swims across it and is handed to each wall line ` +
-        `evenly along its whole length: ${capDia.join(', ')}.` + (L.diaphragm === 'rigid' ? ' Rigid: shared by wall stiffness, plus twist.' : ' Flexible: shared by tributary width.');
+      this.captions[1] = `The floor acts like a flat beam spanning between the lateral-system lines. The load is handed to each line ` +
+        `evenly along its whole length: ${capDia.join(', ')}.` + (L.diaphragm === 'rigid' ? ' Rigid: shared by line-length stiffness proxy, plus twist.' : ' Flexible: shared by tributary width.');
 
       // 3. Collectors: the collector force only, along the parts of each line with no wall,
       //    flowing toward the wall and growing as it gets there.
@@ -209,10 +213,10 @@
         });
       });
       this.captions[2] = capColl.length
-        ? `Collectors gather the load handed to the parts of each line with no wall and drag it into the wall: ${capColl.join(', ')}. The force builds up toward the wall.`
-        : 'Every wall runs the full length of its line, so no collector is needed: the load goes straight into the wall.';
+        ? `Collectors gather the load handed to the parts of each line with no lateral element and drag it into the ${system.layoutName.toLowerCase()}: ${capColl.join(', ')}. The force builds up toward the line.`
+        : `The ${system.layoutPlural.toLowerCase()} run the full length of their lines, so no collector is needed.`;
 
-      // 4. Shear walls, story by story from this level down.
+      // 4. Show the selected lateral system's story shear representation.
       const capWall = [];
       b.walls.forEach(w => {
         const ax = w.dir === 'x' ? { x: 1, y: 0 } : { x: 0, y: 1 }, Lw = w.to - w.from;
@@ -223,6 +227,15 @@
           if (!V || Math.abs(V) < 1e-6) continue;
           shown = true;
           const sgn = Math.sign(V), d = D(ax.x * sgn, ax.y * sgn), sz = size(V), H = st.elev - st.below;
+          if (!isWall) {
+            const mid = (w.from + w.to) / 2;
+            const linePoint = at(mid, st.elev - 1);
+            if (w.dir === 'x') linePoint.y -= 3;
+            else linePoint.x -= 3;
+            this.add(3, u => centred(linePoint, d, sz, Math.sin(Math.PI * u)), (li - k) * 0.15);
+            this.label(`${w.name}: equivalent line shear ${r1(Math.abs(V))} k`, at(mid, st.elev + 2), 3, 0.8);
+            continue;
+          }
           const up = sgn > 0 ? w.from : w.to, dn = sgn > 0 ? w.to : w.from, toward = Math.sign(dn - up);
           const stagger = (li - k) * 0.15;
           if (wallStyle === 'edges') {
@@ -250,12 +263,15 @@
         const base = b.members[`${w.id}-${b.levels[0].tag}`].results.lateral;
         if (shown) capWall.push(`${w.name} ${r1(Math.abs(b.members[`${w.id}-${lv.tag}`].results.lateral.shear))} k → ${r1(Math.abs(base.shear))} k at the base`);
       });
-      this.captions[3] = (wallStyle === 'edges'
-        ? 'Each story panel is in shear: pushed one way along its top, held back along its bottom, with the ends pulled up and pushed down to keep it from spinning. '
-        : 'The load enters at the top corner and travels diagonally down to the opposite bottom corner, like a compression brace. ') +
-        `${capWall.join('; ')}.` + (li < b.levels.length - 1 ? ' (Includes the floors above this level.)' : '');
+      this.captions[3] = isWall
+        ? (wallStyle === 'edges'
+          ? 'Each story panel is in shear: pushed one way along its top, held back along its bottom, with the ends pulled up and pushed down to keep it from spinning. '
+          : 'The load enters at the top corner and travels diagonally down to the opposite bottom corner, like a compression brace. ') +
+          `${capWall.join('; ')}.` + (li < b.levels.length - 1 ? ' (Includes the floors above this level.)' : '')
+        : `Equivalent story shear is shown along each ${system.layoutName.toLowerCase()}; the steel-frame member forces are not calculated. ${capWall.join('; ')}.` +
+          (li < b.levels.length - 1 ? ' (Includes the floors above this level.)' : '');
 
-      // 5. Foundation: base shear into the footing, and overturning as uplift and compression at the ends.
+      // 5. Show the foundation reaction or equivalent frame-line base reaction.
       const capFdn = [];
       b.walls.forEach(w => {
         const res = b.members[`${w.id}-${b.levels[0].tag}`].results.lateral, V = res.shear;
@@ -264,6 +280,16 @@
         const d = D(ax.x * sgn, ax.y * sgn), sz = size(V), mid = (w.from + w.to) / 2;
         const at = (o, h) => w.dir === 'x' ? { x: o, y: w.at, z: h } : { x: w.at, y: o, z: h };
         this.add(4, u => ({ tail: W(at(mid, -1)).sub(d.clone().multiplyScalar(sz.len * (0.9 - 0.2 * Math.sin(Math.PI * u)))), dir: d, ...sz, a: 1 }));
+        if (!isWall) {
+          const endA = sgn > 0 ? w.from : w.to, endB = sgn > 0 ? w.to : w.from;
+          const szT = size(res.holdDown);
+          this.add(4, u => ({ tail: W(at(endA, 0.5 + 2 * u)), dir: D(0, 0, 1), ...szT, a: Math.sin(Math.PI * u) }));
+          this.add(4, u => ({ tail: W(at(endB, szT.len + 3.5 - 2 * u)), dir: D(0, 0, -1), ...szT, a: Math.sin(Math.PI * u) }));
+          this.label(`Equivalent base reaction ${r1(Math.abs(V))} k`, at(mid, -5), 4, 0.8);
+          this.label(`Equivalent end-force couple ${r1(res.holdDown)} k`, at(endA, 9), 4, 0.75);
+          capFdn.push(`${w.name}: ${r1(Math.abs(V))} k equivalent base shear, ${r1(res.holdDown)} k end-force couple`);
+          return;
+        }
         // The wall tips about its downwind end: the upwind end lifts, the downwind end bears down.
         const upEnd = sgn > 0 ? w.from : w.to, downEnd = sgn > 0 ? w.to : w.from, szT = size(res.holdDown);
         this.add(4, u => ({ tail: W(at(upEnd, 0.5 + 2 * u)), dir: D(0, 0, 1), ...szT, a: Math.sin(Math.PI * u) }));
@@ -273,8 +299,10 @@
         this.label(`Compression ${r1(res.holdDown)} k`, at(downEnd, -4), 4, 0.75);
         capFdn.push(`${w.name}: ${r1(Math.abs(V))} k base shear, ${r1(res.holdDown)} k uplift / compression`);
       });
-      this.captions[4] = `The footings resist the base shear by friction and soil pressure, and the overturning as uplift at one end of ` +
-        `the wall and extra bearing at the other: ${capFdn.join('; ')}.`;
+      this.captions[4] = isWall
+        ? `The footings resist the base shear by friction and soil pressure, and the overturning as uplift at one end of ` +
+          `the wall and extra bearing at the other: ${capFdn.join('; ')}.`
+        : `Equivalent frame-line base reactions and overturning couples are shown for visualization only; they are not steel member or connection design demands: ${capFdn.join('; ')}.`;
     }
 
     // Advance the stage clock and pose every arrow; called from the scene's render loop.

@@ -6,6 +6,23 @@
   const state = { mode: 'gravity', b: null };
   let customWalls = [];
 
+  const layoutElementName = () => (LP.SYSTEMS[$('system').value] || LP.SYSTEMS.specialRCWall).layoutName;
+
+  const labelLateralSystems = () => Array.from($('system').options).forEach(option => {
+    const system = LP.SYSTEMS[option.value];
+    if (system) option.textContent = `${system.name} (R = ${system.R})`;
+  });
+
+  const updateWallEditorLabels = () => {
+    const name = layoutElementName();
+    const system = LP.SYSTEMS[$('system').value] || LP.SYSTEMS.specialRCWall;
+    $('wallEditorHelp').textContent =
+      `Choose each ${name.toLowerCase()}'s gridline, start distance, and length. Up to 5 ` +
+      `${name.toLowerCase()}s can share a gridline. Distances start at the south or west end.`;
+    $('addWall').textContent = `Add ${name.toLowerCase()}`;
+    $('wallStyle').parentElement.hidden = system.graphic !== 'wall';
+  };
+
   const wallAxisData = axis => {
     const xBays = nums($('xBays').value), yBays = nums($('yBays').value);
     const bays = axis === 'x' ? xBays : yBays;
@@ -33,7 +50,7 @@
       const fieldset = document.createElement('fieldset');
       fieldset.className = 'wall-row';
       const legend = document.createElement('legend');
-      legend.textContent = `Shear wall ${index + 1}`;
+      legend.textContent = `${layoutElementName()} ${index + 1}`;
       fieldset.appendChild(legend);
 
       const addField = (text, control) => {
@@ -73,11 +90,11 @@
       length.step = '0.1';
       length.className = 'wall-length';
       length.value = wall.length;
-      addField('Wall length (ft)', length);
+      addField(`${layoutElementName()} length (ft)`, length);
 
       const remove = document.createElement('button');
       remove.type = 'button';
-      remove.textContent = 'Remove wall';
+      remove.textContent = `Remove ${layoutElementName().toLowerCase()}`;
       remove.addEventListener('click', () => {
         customWalls = readWallRows();
         customWalls.splice(index, 1);
@@ -114,6 +131,7 @@
     const full = ['x', 'y'].every(axis => wallAxisData(axis).labels.every((_, gridIndex) =>
       customWalls.filter(wall => wall.axis === axis && wall.gridIndex === gridIndex).length >= 5));
     $('addWall').disabled = full;
+    $('addWall').textContent = `Add ${layoutElementName().toLowerCase()}`;
   };
 
   const validateWallRows = walls => {
@@ -123,23 +141,23 @@
       const data = wallAxisData(wall.axis);
       const gridName = data.labels[wall.gridIndex];
       if (!Number.isInteger(wall.gridIndex) || gridName === undefined) {
-        errors.push(`Shear wall ${index + 1} needs a valid gridline.`);
+        errors.push(`${layoutElementName()} ${index + 1} needs a valid gridline.`);
         return;
       }
       if (!Number.isFinite(wall.start) || !Number.isFinite(wall.length) ||
           wall.start < 0 || wall.length <= 0 || wall.start + wall.length > data.length + 1e-6) {
-        errors.push(`Shear wall ${index + 1} must have a positive length and fit on gridline ${gridName} (0-${data.length} ft).`);
+        errors.push(`${layoutElementName()} ${index + 1} must have a positive length and fit on gridline ${gridName} (0-${data.length} ft).`);
       }
       const key = `${wall.axis}:${wall.gridIndex}`;
       if (!groups.has(key)) groups.set(key, []);
       groups.get(key).push({ wall, index, gridName });
     });
     groups.forEach(lineWalls => {
-      if (lineWalls.length > 5) errors.push(`Gridline ${lineWalls[0].gridName} can have no more than 5 shear walls.`);
+      if (lineWalls.length > 5) errors.push(`Gridline ${lineWalls[0].gridName} can have no more than 5 ${layoutElementName().toLowerCase()}s.`);
       const ordered = lineWalls.slice().sort((a, b) => a.wall.start - b.wall.start);
       for (let i = 1; i < ordered.length; i++) {
         if (ordered[i].wall.start < ordered[i - 1].wall.start + ordered[i - 1].wall.length - 1e-6) {
-          errors.push(`Shear walls ${ordered[i - 1].index + 1} and ${ordered[i].index + 1} overlap on gridline ${ordered[i].gridName}.`);
+          errors.push(`${layoutElementName()}s ${ordered[i - 1].index + 1} and ${ordered[i].index + 1} overlap on gridline ${ordered[i].gridName}.`);
         }
       }
     });
@@ -173,7 +191,10 @@
   const showWallEditor = () => {
     const custom = $('wallPreset').value === 'custom';
     $('wallEditor').hidden = !custom;
-    if (custom) renderWallRows();
+    if (custom) {
+      updateWallEditorLabels();
+      renderWallRows();
+    }
   };
 
   const readInputs = () => {
@@ -189,7 +210,7 @@
         const data = wallAxisData(wall.axis);
         return {
           id: `CW${index + 1}`,
-          name: `Shear wall ${index + 1}`,
+          name: `${layoutElementName()} ${index + 1}`,
           dir: wall.axis === 'x' ? 'y' : 'x',
           at: data.coords[wall.gridIndex],
           from: wall.start,
@@ -249,15 +270,21 @@
       $('warnings').innerHTML = b.warnings.map(w => `<div class="warn">${w}</div>`).join('');
       return;
     }
+    const system = LP.SYSTEMS[b.inputs.lateral.system] || LP.SYSTEMS.specialRCWall;
     if (!id) {
       const total = Object.values(b.members).filter(m => m.type === 'footing').reduce((s, m) => s + m.results.gravity.value, 0);
       const V = b.levels.reduce((s, lv) => s + b.members[`LAT-${lv.tag}`].results.lateral.value, 0);
+      const description = state.mode === 'gravity'
+        ? '<p>Load starts on the deck, goes to the filler beams, then the girders, then the columns, and ends at the footings. Glowing strips show the flow, one stage at a time (brighter means more load); member color shows force (blue light, red heavy).</p>'
+        : `<p>${b.inputs.lateral.type === 'wind' ? 'Wind' : 'Seismic'} load in the ${b.inputs.lateral.dir.toUpperCase()} direction goes into each floor diaphragm, along the collectors into the ${system.layoutPlural.toLowerCase()}, and down to the foundation.</p>
+          <p>The floor acts like a deep beam lying flat. Its <b style="color:#2b7bba">shear</b> and <b style="color:#d9822b">moment</b> diagrams are drawn on the roof, or on the level of the member you click; <b style="color:#9b59b6">collector</b> force is drawn as a fence along each lateral-system line. Switch the diaphragm between flexible and rigid to see them change.</p>`;
+      const systemNote = state.mode === 'lateral' && b.systemKind !== 'wall'
+        ? '<p class="muted">Steel-frame graphics and ASCE 7 R are system-specific. Member-force distribution is still a simplified line-length approximation, not a steel-frame analysis.</p>'
+        : '';
       $('panel').innerHTML = `
         <h2>${state.mode === 'gravity' ? 'Gravity load path' : 'Lateral load path'}</h2>
-        <p>${state.mode === 'gravity'
-          ? 'Load starts on the deck, goes to the filler beams, then the girders, then the columns, and ends at the footings. Glowing strips show the flow, one stage at a time (brighter means more load); member color shows force (blue light, red heavy).'
-          : `${b.inputs.lateral.type === 'wind' ? 'Wind' : 'Seismic'} load in the ${b.inputs.lateral.dir.toUpperCase()} direction goes into each floor diaphragm, along the collectors into the shear walls, and down to the wall footings.</p>
-          <p>The floor acts like a deep beam lying flat. Its <b style="color:#2b7bba">shear</b> and <b style="color:#d9822b">moment</b> diagrams are drawn on the roof, or on the level of the member you click; <b style="color:#9b59b6">collector</b> force is drawn as a fence along each wall line. Switch the diaphragm between flexible and rigid to see them change.`}</p>
+        ${description}
+        ${systemNote}
         <p><b>Total gravity load:</b> ${LP.round(total, 1)} kips<br><b>Base shear:</b> ${LP.round(V, 1)} kips</p>
         <p class="muted">Click any member to open its details. Click a bold section heading to collapse or expand it.</p>`;
     } else {
@@ -324,9 +351,14 @@
   new LP.DropZone($('drop'), showImported);
   $('useInputs').addEventListener('click', () => { state.imported = false; rebuild(); });
   document.querySelectorAll('#controls input, #controls select').forEach(el => {
-    if (!['xBays', 'yBays', 'wallPreset'].includes(el.id)) el.addEventListener('change', rebuild);
+    if (!['xBays', 'yBays', 'wallPreset', 'system'].includes(el.id)) el.addEventListener('change', rebuild);
   });
   $('wallPreset').addEventListener('change', () => { showWallEditor(); rebuild(); });
+  $('system').addEventListener('change', () => {
+    updateWallEditorLabels();
+    if ($('wallPreset').value === 'custom') renderWallRows();
+    rebuild();
+  });
   ['xBays', 'yBays'].forEach(id => $(id).addEventListener('change', () => {
     customWalls = readWallRows();
     renderWallRows();
@@ -347,6 +379,7 @@
     if (id) { e.preventDefault(); view.select(id); }
   });
 
+  labelLateralSystems();
   showWallEditor();
   showModeInputs();
   rebuild();

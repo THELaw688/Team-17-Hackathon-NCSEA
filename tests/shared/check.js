@@ -160,6 +160,27 @@ b = run({ type: 'seismic' });
 check('Base shear = 0.1 x (240 + 90)', l(b, 'LAT-L2') + l(b, 'LAT-R'), 33);
 check('Level 2 force = 33 x 3360 / 5880', l(b, 'LAT-L2'), 18.857);
 
+console.log('\nLateral systems: ASCE 7 R factors and schematic geometry');
+[
+  ['specialSteelBracedFrame', 6, 'bracedFrame', 'frameBrace'],
+  ['specialSteelMomentFrame', 8, 'momentFrame', 'momentJoint'],
+  ['bucklingRestrainedBracedFrame', 8, 'brbf', 'brbfCore']
+].forEach(([system, R, graphic, visualType]) => {
+  const model = LP.buildModel(inputs({ type: 'seismic', mode: 'asce7', SDS: 1, SD1: 100, system }));
+  check(`${LP.SYSTEMS[system].name} uses R = ${R} in Cs`, LP.seismicCs(model).Cs, 1 / R);
+  check(`${LP.SYSTEMS[system].name} builds its matching 3D graphic`, model.systemKind === graphic ? 1 : 0, 1);
+  check(`${LP.SYSTEMS[system].name} includes ${visualType} geometry`,
+    model.systemGraphics.some(part => part.type === visualType) ? 1 : 0, 1);
+});
+const momentFrame = LP.buildModel(inputs({ system: 'specialSteelMomentFrame' }));
+check('Moment-frame geometry has no diagonal braces',
+  momentFrame.systemGraphics.some(part => part.type === 'frameBrace' || part.type === 'brbfBrace') ? 1 : 0, 0);
+const momentPeriod = LP.seismicCs(LP.buildModel(inputs({
+  type: 'seismic', mode: 'asce7', SDS: 1, SD1: 100, system: 'specialSteelMomentFrame'
+}))).calc[1];
+check('Special steel moment frame uses Table 12.8-2 period coefficients',
+  momentPeriod.includes('0.028') && momentPeriod.includes('^0.8') ? 1 : 0, 1);
+
 console.log('\nLateral: rigid diaphragm with an eccentric wall layout');
 const ecc = [
   { id: 'WS', name: 'South wall', dir: 'x', at: 0, from: 0, to: 60 },
