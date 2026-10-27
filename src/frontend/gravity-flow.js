@@ -50,10 +50,34 @@
     }
 
     clear() {
-      this.group.traverse(o => { if (o.material) o.material.dispose(); });
+      this.group.traverse(o => {
+        if (o.material) o.material.dispose();
+        if (o.geometry && o.geometry !== this.box) o.geometry.dispose();
+      });
       this.group.clear();
       this.items = [];
       this.bar.style.display = 'none';
+    }
+
+    // One glowing zigzag line: the ribbed deck's profile, drawn across the deck from y0 to y1 at
+    // elevation z (rib pitch and depth exaggerated so it reads at building scale). It stays in one
+    // shape and only moves in x: `move(p)` returns { x, a } for the stage's progress p.
+    addZigzag(stage, y0, y1, z, move) {
+      const ribs = Math.max(2, Math.round((y1 - y0) / 1.6)), pitch = (y1 - y0) / ribs, depth = 0.7;
+      const path = new THREE.CurvePath();
+      let prev = LP.toWorld({ x: 0, y: y0, z });
+      for (let i = 1; i <= ribs * 2; i++) {
+        const next = LP.toWorld({ x: 0, y: y0 + i * pitch / 2, z: z + (i % 2 ? depth : 0) });
+        path.add(new THREE.LineCurve3(prev, next));
+        prev = next;
+      }
+      const tube = radius => new THREE.TubeGeometry(path, ribs * 8, radius, 6, false);
+      const mat = (color, op) => new THREE.MeshBasicMaterial({ color, transparent: true, opacity: op, depthTest: false, depthWrite: false });
+      const core = new THREE.Mesh(tube(0.13), mat(CORE, 1)), halo = new THREE.Mesh(tube(0.38), mat(HALO, 0.45));
+      core.renderOrder = 8;
+      halo.renderOrder = 7;
+      this.group.add(halo, core);
+      this.items.push({ stage, strength: 1, move, core, halo });
     }
 
     // One glowing piece: a bright core box inside a faint, larger halo box. `pose(p)` gets the
@@ -78,18 +102,15 @@
       const lv = b.levels[li], t = lv.tag, z = lv.elev, w = lv.dead + lv.live;
       const G = id => b.members[id] && b.members[id].results.gravity;
       const maxOf = type => Math.max(...Object.values(b.members).filter(m => m.type === type && m.level === li).map(m => m.results.gravity.value), 1e-9);
-      const thin = 0.28, beamW = 0.55, girderW = 0.8, colW = 0.7;
+      const beamW = 0.55, girderW = 0.8, colW = 0.7;
 
-      // 1. Deck: between each pair of neighbouring beams, a strip as long as the bay starts at
-      //    mid-span and slides out to both beams.
+      // 1. Deck: between each pair of neighbouring beams, a zigzag line as long as the bay (the
+      //    ribbed deck profile) starts at mid-span and travels out to both beams.
       b.yLabels.slice(0, -1).forEach((_, by) => {
         const y0 = b.ys[by] + 0.4, y1 = b.ys[by + 1] - 0.4;
         b.beamXs.slice(0, -1).forEach((xa, k) => {
           const xb = b.beamXs[k + 1], xm = (xa + xb) / 2;
-          [xa, xb].forEach(target => this.add(0, 1, p => {
-            const x = xm + (target - xm) * ease(p);
-            return { x0: x - thin, x1: x + thin, y0, y1, z0: z + 0.3, z1: z + 0.5, a: 0.4 + 0.6 * p };
-          }));
+          [xa, xb].forEach(target => this.addZigzag(0, y0, y1, z + 0.3, p => ({ x: xm + (target - xm) * ease(p), a: 0.45 + 0.55 * p })));
         });
       });
 
@@ -142,7 +163,7 @@
       const bm = heaviest('beam'), gd = heaviest('girder'), ft = heaviest('footing');
       const spacing = b.beamXs.length > 1 ? b.beamXs[1] - b.beamXs[0] : 0;
       this.captions = [
-        `${lv.name} deck: ${w} psf (D + L). The deck spans ${r1(spacing)} ft between beams, so each beam takes the strip halfway to its neighbours.`,
+        `${lv.name} deck: ${w} psf (D + L). The ribbed deck (zigzag) spans ${r1(spacing)} ft between beams, so each beam takes the deck halfway to its neighbours.`,
         bm ? `Each beam carries its strip to its two ends. Heaviest: ${bm.label}, ${r1(bm.results.gravity.reaction)} k at each end.` : '',
         gd ? `Girders collect the filler beam reactions and hand them to the columns. Heaviest: ${gd.label}, ${r1(gd.results.gravity.value)} k total.` : 'No girders carry load at this level.',
         `Columns add the load from every level above as it travels down to grade.`,
@@ -160,6 +181,16 @@
       const alpha = STAGES.map(s => ramp(cyc, s.start, s.start + 0.3) * (1 - ramp(cyc, s.end - 0.4, s.end)));
       const prog = STAGES.map(s => ramp(cyc, s.start, s.end - 0.4));
       this.items.forEach(it => {
+        if (it.move) {
+          const a0 = alpha[it.stage];
+          it.core.visible = it.halo.visible = a0 > 0;
+          if (a0 <= 0) return;
+          const st = it.move(prog[it.stage]);
+          it.core.position.x = it.halo.position.x = st.x;   // plan x is world x
+          it.core.material.opacity = a0 * st.a;
+          it.halo.material.opacity = 0.45 * a0 * st.a;
+          return;
+        }
         const a0 = alpha[it.stage], box = a0 > 0 ? it.pose(prog[it.stage]) : null;
         const on = !!box && box.x1 > box.x0 && box.y1 > box.y0 && box.z1 > box.z0;
         it.core.visible = it.halo.visible = on;
