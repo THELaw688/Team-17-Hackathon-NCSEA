@@ -64,6 +64,21 @@ how we avoid two people rewriting the same file.
 
 ## Log
 
+### 2026-10-27 — Diaphragm diagram: include the accidental torsion mass shift
+**Who:** Josh (+ Claude Code), approved by Nick (role 3 owner) · **Branch:** feature/lateral-loads
+
+- **What changed:** `LP.diaphragmDiagram` draws the story load as a linearly varying (trapezoidal)
+  load with the same total and its centroid moved by `b.rigid.ec - b.rigid.e`, instead of a uniform
+  load. `w1 = 12 F shift / depth^3` is the slope.
+- **Why:** with accidental torsion the wall forces assume the mass sits 5% off center, but the
+  diagram still loaded the floor at its center, so the moment missed closing by exactly F x e_acc
+  (e.g. 47 k-ft at Level 2 of the test building).
+- **Files:** `src/shared/diagrams.js`, `CHANGELOG.md`
+- **Heads up:** no change for wind, flexible diaphragms or torsion off (`shift = 0`). Seismic + rigid
+  diagrams now close in X and Y for symmetric and eccentric layouts; all 30 `check.js` checks pass
+  (run in the browser, Node not installed here). Role 3 still owns this file; this was a one-off
+  agreed with Nick.
+
 ### 2026-10-27 — Add 5% accidental torsion to the rigid diaphragm (seismic)
 **Who:** Josh (+ Claude Code) · **Branch:** feature/lateral-loads
 
