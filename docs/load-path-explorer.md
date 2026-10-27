@@ -44,6 +44,8 @@ Roles 5 and 6 share `lateral.js`: 5 edits only `storyForces` and `distribute`, 6
   - `results.gravity.liveReduction = { KLL, AT, floors, factor, removed }` on beams, girders, columns and footings that support a floor, when live load reduction is on. `factor` is L/Lo (1 means no reduction allowed), `removed` is the kips taken off `value`. Missing when reduction is off or the member only supports the roof. Path values stay unreduced: each member reduces its own live load.
 - `b.paths[]`: `{ mode, from, to, value (kips), at: {x, y, z} connection point, note }`: one step of load transfer. The trace, the flow animation and the explain panel all read these.
 - In the member details panel, **Load comes from**, **Load goes to** and **Calculation** are expandable sections; all are open by default.
+- The left controls panel's **Import a model**, **Building**, **Gravity loads**, **Lateral loads** and
+  **View** groups are expandable sections; all are open by default.
 - `b.walls[]`: `{ id, name, dir ('x' runs along X at y = at, 'y' runs along Y at x = at), at, from, to, length }`
 - In **Custom layout**, assign a wall to an X or Y gridline, then set its start distance from the
   south/west end and its length in feet. Up to five non-overlapping walls may be placed on each

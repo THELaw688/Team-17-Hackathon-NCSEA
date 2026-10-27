@@ -17,7 +17,13 @@
   .toggle button:last-child { border-radius: 0 6px 6px 0; border-left: 0; }
   .toggle button.on { background: var(--accent); border-color: var(--accent); color: #fff; }
   #controls { overflow-y: auto; padding: 12px 16px; border-right: 1px solid var(--line); }
-  #controls h3 { font-size: 12px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); margin: 16px 0 6px; }
+  #controls .control-section { margin: 0 0 12px; }
+  #controls .control-section > summary { display: flex; align-items: center; gap: 8px; padding: 6px 8px; border: 1px solid var(--line); border-radius: 4px; background: #f7f8fa; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); cursor: pointer; list-style: none; }
+  #controls .control-section > summary::-webkit-details-marker { display: none; }
+  #controls .control-section > summary::before { width: 0; height: 0; border-top: 5px solid transparent; border-bottom: 5px solid transparent; border-left: 6px solid currentColor; content: ""; transition: transform .12s; }
+  #controls .control-section[open] > summary::before { transform: rotate(90deg); }
+  #controls .control-section > summary:hover { border-color: var(--accent); color: var(--accent); }
+  #controls .control-section > summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
   #controls label { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin: 6px 0; }
   #controls input, #controls select { width: 110px; font: inherit; padding: 3px 6px; border: 1px solid var(--line); border-radius: 4px; }
   #controls input[type=checkbox] { width: auto; }
@@ -69,65 +75,75 @@
 </header>
 
 <div id="controls">
-  <h3>Import a model</h3>
-  <div id="drop">
-    <div class="big-label">Drop an IFC file here</div>
-    <div class="hint">or click to choose &middot; .ifc from Revit</div>
-    <input type="file" accept=".ifc,.e2k,.$et">
-  </div>
-  <div class="drop-status" data-role="status"></div>
-  <p class="privacy">The file is read in your browser, used, and discarded. It is never uploaded,
-    never written to disk, and never stored. This app has no server.</p>
-  <button id="useInputs">Back to the grid model</button>
+  <details class="control-section" open>
+    <summary>Import a model</summary>
+    <div id="drop">
+      <div class="big-label">Drop an IFC file here</div>
+      <div class="hint">or click to choose &middot; .ifc from Revit</div>
+      <input type="file" accept=".ifc,.e2k,.$et">
+    </div>
+    <div class="drop-status" data-role="status"></div>
+    <p class="privacy">The file is read in your browser, used, and discarded. It is never uploaded,
+      never written to disk, and never stored. This app has no server.</p>
+    <button id="useInputs">Back to the grid model</button>
+  </details>
 
-  <h3>Building</h3>
-  <label>X bays (ft) <input id="xBays" value="30, 30, 30"></label>
-  <label>Y bays (ft) <input id="yBays" value="25, 25"></label>
-  <label>Story heights <input id="stories" value="14, 13, 13"></label>
-  <label>Beam spaces / bay <input id="beamSpaces" type="number" min="1" max="6" value="3"></label>
-  <label>Shear walls <select id="wallPreset"><option value="symmetric">Symmetric preset</option><option value="eccentric">Eccentric preset</option><option value="custom">Custom layout</option></select></label>
-  <div id="wallEditor" hidden>
-    <p class="muted" style="font-size:12px">Choose each wall's gridline, start distance, and length. Up to 5 walls can share a gridline. Distances start at the south or west end.</p>
-    <div id="wallRows"></div>
-    <div id="wallError" class="warn" hidden></div>
-    <button id="addWall" type="button">Add shear wall</button>
-  </div>
+  <details class="control-section" open>
+    <summary>Building</summary>
+    <label>X bays (ft) <input id="xBays" value="30, 30, 30"></label>
+    <label>Y bays (ft) <input id="yBays" value="25, 25"></label>
+    <label>Story heights <input id="stories" value="14, 13, 13"></label>
+    <label>Beam spaces / bay <input id="beamSpaces" type="number" min="1" max="6" value="3"></label>
+    <label>Shear walls <select id="wallPreset"><option value="symmetric">Symmetric preset</option><option value="eccentric">Eccentric preset</option><option value="custom">Custom layout</option></select></label>
+    <div id="wallEditor" hidden>
+      <p class="muted" style="font-size:12px">Choose each wall's gridline, start distance, and length. Up to 5 walls can share a gridline. Distances start at the south or west end.</p>
+      <div id="wallRows"></div>
+      <div id="wallError" class="warn" hidden></div>
+      <button id="addWall" type="button">Add shear wall</button>
+    </div>
+  </details>
 
-  <h3>Gravity loads (psf)</h3>
-  <label>Floor dead <input id="floorDead" type="number" value="80"></label>
-  <label>Floor live <input id="floorLive" type="number" value="50"></label>
-  <label>Roof dead <input id="roofDead" type="number" value="30"></label>
-  <label>Roof live <input id="roofLive" type="number" value="20"></label>
+  <details class="control-section" open>
+    <summary>Gravity loads (psf)</summary>
+    <label>Floor dead <input id="floorDead" type="number" value="80"></label>
+    <label>Floor live <input id="floorLive" type="number" value="50"></label>
+    <label>Roof dead <input id="roofDead" type="number" value="30"></label>
+    <label>Roof live <input id="roofLive" type="number" value="20"></label>
+  </details>
 
-  <h3>Lateral loads</h3>
-  <label>Type <select id="latType"><option value="wind">Wind</option><option value="seismic">Seismic</option></select></label>
-  <label>Direction <select id="latDir"><option value="x">X (east-west)</option><option value="y">Y (north-south)</option></select></label>
-  <label>Input mode <select id="latMode"><option value="override">Override</option><option value="asce7">ASCE 7</option></select></label>
-  <div id="asce7Inputs">
-    <label>Risk category <select id="riskCategory"><option>I</option><option selected>II</option><option>III</option><option>IV</option></select></label>
-    <label>SDS (g) <input id="SDS" type="number" step="0.01" value="1.00"></label>
-    <label>SD1 (g) <input id="SD1" type="number" step="0.01" value="0.60"></label>
-    <label>Lateral system <select id="system">
-      <option value="specialRCWall">Special RC shear walls</option>
-      <option value="ordinaryRCWall">Ordinary RC shear walls</option>
-      <option value="specialMasonryWall">Special masonry shear walls</option>
-    </select></label>
-    <label>Wind speed V (mph) <input id="windSpeed" type="number" value="105"></label>
-    <label>Exposure <select id="exposure"><option>B</option><option selected>C</option><option>D</option></select></label>
-  </div>
-  <div id="overrideInputs">
-    <label>Wind (psf) <input id="windPressure" type="number" value="20"></label>
-    <label>Seismic Cs <input id="Cs" type="number" step="0.01" value="0.10"></label>
-  </div>
-  <label title="Seismic with a rigid diaphragm only (ASCE 7 12.8.4.2)">Accidental torsion <input id="accidentalTorsion" type="checkbox" checked></label>
-  <label>Diaphragm <select id="diaphragm"><option value="flexible">Flexible</option><option value="rigid">Rigid</option></select></label>
+  <details class="control-section" open>
+    <summary>Lateral loads</summary>
+    <label>Type <select id="latType"><option value="wind">Wind</option><option value="seismic">Seismic</option></select></label>
+    <label>Direction <select id="latDir"><option value="x">X (east-west)</option><option value="y">Y (north-south)</option></select></label>
+    <label>Input mode <select id="latMode"><option value="override">Override</option><option value="asce7">ASCE 7</option></select></label>
+    <div id="asce7Inputs">
+      <label>Risk category <select id="riskCategory"><option>I</option><option selected>II</option><option>III</option><option>IV</option></select></label>
+      <label>SDS (g) <input id="SDS" type="number" step="0.01" value="1.00"></label>
+      <label>SD1 (g) <input id="SD1" type="number" step="0.01" value="0.60"></label>
+      <label>Lateral system <select id="system">
+        <option value="specialRCWall">Special RC shear walls</option>
+        <option value="ordinaryRCWall">Ordinary RC shear walls</option>
+        <option value="specialMasonryWall">Special masonry shear walls</option>
+      </select></label>
+      <label>Wind speed V (mph) <input id="windSpeed" type="number" value="105"></label>
+      <label>Exposure <select id="exposure"><option>B</option><option selected>C</option><option>D</option></select></label>
+    </div>
+    <div id="overrideInputs">
+      <label>Wind (psf) <input id="windPressure" type="number" value="20"></label>
+      <label>Seismic Cs <input id="Cs" type="number" step="0.01" value="0.10"></label>
+    </div>
+    <label title="Seismic with a rigid diaphragm only (ASCE 7 12.8.4.2)">Accidental torsion <input id="accidentalTorsion" type="checkbox" checked></label>
+    <label>Diaphragm <select id="diaphragm"><option value="flexible">Flexible</option><option value="rigid">Rigid</option></select></label>
+  </details>
 
-  <h3>View</h3>
-  <label title="Click a grid bubble to rename it; press Enter to save.">Show gridlines <input id="gridlines" type="checkbox" checked></label>
-  <label>Show load flow <input id="flow" type="checkbox" checked></label>
-  <label>Show diagrams <input id="diagrams" type="checkbox" checked></label>
-  <label>Wall arrows <select id="wallStyle"><option value="strut">Diagonal strut</option><option value="edges">Edge shear flow</option></select></label>
-  <button id="clear">Clear selection</button>
+  <details class="control-section" open>
+    <summary>View</summary>
+    <label title="Click a grid bubble to rename it; press Enter to save.">Show gridlines <input id="gridlines" type="checkbox" checked></label>
+    <label>Show load flow <input id="flow" type="checkbox" checked></label>
+    <label>Show diagrams <input id="diagrams" type="checkbox" checked></label>
+    <label>Wall arrows <select id="wallStyle"><option value="strut">Diagonal strut</option><option value="edges">Edge shear flow</option></select></label>
+    <button id="clear">Clear selection</button>
+  </details>
 </div>
 
 <div id="view">

@@ -68,6 +68,16 @@ how we avoid two people rewriting the same file.
 
 ## Log
 
+### 2026-10-27 — Make left control groups collapsible
+**Who:** Kevin (+ Copilot SDK in VS Code) · **Branch:** feature/collapsible-controls
+
+- **What changed:** Made Import a model, Building, Gravity loads, Lateral loads and View into
+  accessible expandable sections in the left controls panel, with clear disclosure arrows; all
+  sections are open by default.
+- **Why:** Let users collapse controls they are not currently using and focus on the relevant inputs.
+- **Files:** `src/frontend/index.html`, `docs/load-path-explorer.md`, `CHANGELOG.md`
+- **Heads up:** Uses native HTML disclosure controls and adds no dependencies.
+
 ### 2026-10-27 — Configure shear wall gridlines and lengths
 **Who:** Kevin (+ Copilot SDK in VS Code) · **Branch:** feature/shear-wall-layout
 
