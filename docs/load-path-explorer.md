@@ -42,6 +42,7 @@ Roles 5 and 6 share `lateral.js`: 5 edits only `storyForces` and `distribute`, 6
   - `results.gravity.tribArea = { rects: [{ x0, y0, x1, y1, z, area }], area }` on every deck, beam, girder, column and footing: the plan rectangles (ft, at elevation `z`) whose load the member carries, and their total in sq ft. A column lists one rectangle per level it supports (its own level first); a footing lists every level. Draw them as flat shaded patches with `LP.toWorld` to show the selected member's tributary area. Load = (D + L at `z`) x `area` for every rectangle, plus `selfWeight`, and `check.js` checks this for every member.
   - `results.gravity.selfWeight` (kips): the part of `value` that is member self-weight, including what came from members above. 0 when self-weight is off. Columns also have `ownWeight`, their own story's weight.
 - `b.paths[]`: `{ mode, from, to, value (kips), at: {x, y, z} connection point, note }`: one step of load transfer. The trace, the flow animation and the explain panel all read these.
+- In the member details panel, **Load comes from**, **Load goes to** and **Calculation** are expandable sections; all are open by default.
 - `b.walls[]`: `{ id, name, dir ('x' runs along X at y = at, 'y' runs along Y at x = at), at, from, to, length }`
 - `b.xs` / `b.ys` and `b.xLabels` / `b.yLabels`: gridline positions and their names. The 3D view
   shows numbered X lines and lettered Y lines with bubbles; click a bubble to rename its
