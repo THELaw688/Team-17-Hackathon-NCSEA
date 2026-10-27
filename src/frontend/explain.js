@@ -59,7 +59,11 @@
     const m = b.members[id];
     if (!m) return '';
     const res = m.results[mode];
-    const note = (LP.NOTES[m.type] || {})[mode] || '';
+    const system = LP.SYSTEMS[b.inputs.lateral.system] || LP.SYSTEMS.specialRCWall;
+    const note = b.systemKind !== 'wall' && (m.type === 'wall' || m.type === 'wallFooting')
+      ? `This schematic ${system.layoutName.toLowerCase()} carries the equivalent lateral-line force. ` +
+        'Its 3D framing and selected seismic R factor are shown, but the force distribution remains a simplified line-length approximation, not a steel-frame analysis.'
+      : (LP.NOTES[m.type] || {})[mode] || '';
     const ins = b.paths.filter(p => p.mode === mode && p.to === id);
     const outs = b.paths.filter(p => p.mode === mode && p.from === id);
     const list = (arr, key) => arr.length

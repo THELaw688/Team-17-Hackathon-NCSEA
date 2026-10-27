@@ -85,12 +85,12 @@
   <label>Y bays (ft) <input id="yBays" value="25, 25"></label>
   <label>Story heights <input id="stories" value="14, 13, 13"></label>
   <label>Beam spaces / bay <input id="beamSpaces" type="number" min="1" max="6" value="3"></label>
-  <label>Shear walls <select id="wallPreset"><option value="symmetric">Symmetric preset</option><option value="eccentric">Eccentric preset</option><option value="custom">Custom layout</option></select></label>
+  <label>Lateral layout <select id="wallPreset"><option value="symmetric">Symmetric preset</option><option value="eccentric">Eccentric preset</option><option value="custom">Custom layout</option></select></label>
   <div id="wallEditor" hidden>
-    <p class="muted" style="font-size:12px">Choose each wall's gridline, start distance, and length. Up to 5 walls can share a gridline. Distances start at the south or west end.</p>
+    <p id="wallEditorHelp" class="muted" style="font-size:12px"></p>
     <div id="wallRows"></div>
     <div id="wallError" class="warn" hidden></div>
-    <button id="addWall" type="button">Add shear wall</button>
+    <button id="addWall" type="button">Add lateral element</button>
   </div>
 
   <h3>Gravity loads (psf)</h3>
@@ -103,15 +103,19 @@
   <label>Type <select id="latType"><option value="wind">Wind</option><option value="seismic">Seismic</option></select></label>
   <label>Direction <select id="latDir"><option value="x">X (east-west)</option><option value="y">Y (north-south)</option></select></label>
   <label>Input mode <select id="latMode"><option value="override">Override</option><option value="asce7">ASCE 7</option></select></label>
+  <label>Lateral system <select id="system">
+    <option value="specialRCWall">Special RC shear walls</option>
+    <option value="ordinaryRCWall">Ordinary RC shear walls</option>
+    <option value="specialMasonryWall">Special masonry shear walls</option>
+    <option value="specialSteelBracedFrame">Special steel concentrically braced frames</option>
+    <option value="specialSteelMomentFrame">Special steel moment frames</option>
+    <option value="bucklingRestrainedBracedFrame">Buckling-restrained braced frames</option>
+  </select></label>
+  <p class="muted" style="font-size:11px">In ASCE 7 mode, this system sets R for seismic force calculations. Steel-frame force distribution remains a simplified line-length approximation, not a frame design analysis.</p>
   <div id="asce7Inputs">
     <label>Risk category <select id="riskCategory"><option>I</option><option selected>II</option><option>III</option><option>IV</option></select></label>
     <label>SDS (g) <input id="SDS" type="number" step="0.01" value="1.00"></label>
     <label>SD1 (g) <input id="SD1" type="number" step="0.01" value="0.60"></label>
-    <label>Lateral system <select id="system">
-      <option value="specialRCWall">Special RC shear walls</option>
-      <option value="ordinaryRCWall">Ordinary RC shear walls</option>
-      <option value="specialMasonryWall">Special masonry shear walls</option>
-    </select></label>
     <label>Wind speed V (mph) <input id="windSpeed" type="number" value="105"></label>
     <label>Exposure <select id="exposure"><option>B</option><option selected>C</option><option>D</option></select></label>
   </div>
@@ -126,7 +130,7 @@
   <label title="Click a grid bubble to rename it; press Enter to save.">Show gridlines <input id="gridlines" type="checkbox" checked></label>
   <label>Show load flow <input id="flow" type="checkbox" checked></label>
   <label>Show diagrams <input id="diagrams" type="checkbox" checked></label>
-  <label>Wall arrows <select id="wallStyle"><option value="strut">Diagonal strut</option><option value="edges">Edge shear flow</option></select></label>
+  <label>Shear-wall arrows <select id="wallStyle"><option value="strut">Diagonal strut</option><option value="edges">Edge shear flow</option></select></label>
   <button id="clear">Clear selection</button>
 </div>
 

@@ -68,6 +68,20 @@ how we avoid two people rewriting the same file.
 
 ## Log
 
+### 2026-10-27 — Add steel lateral-system choices and schematic graphics
+**Who:** Kevin (+ Copilot SDK in VS Code) · **Branch:** feature/steel-lateral-systems
+
+- **What changed:** Added special steel concentrically braced frames (R = 6), special steel moment
+  frames (R = 8), and buckling-restrained braced frames (R = 8) to the lateral-system selector.
+  ASCE 7 seismic calculations use each system's R factor; the 3D view distinguishes portal frames,
+  diagonal braces, BRB cores, and shear walls.
+- **Why:** Let users compare lateral-system types and their effect on seismic base shear.
+- **Files:** `src/frontend/app.js`, `src/frontend/explain.js`, `src/frontend/index.html`,
+  `src/frontend/scene.js`, `src/shared/lateral.js`, `src/shared/model.js`,
+  `tests/shared/check.js`, `docs/load-path-explorer.md`
+- **Heads up:** Steel-frame forces use the existing simplified line-length distribution; this is
+  schematic, not frame analysis or design.
+
 ### 2026-10-27 — Configure shear wall gridlines and lengths
 **Who:** Kevin (+ Copilot SDK in VS Code) · **Branch:** feature/shear-wall-layout
 

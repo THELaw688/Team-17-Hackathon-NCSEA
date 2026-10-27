@@ -12,6 +12,12 @@
     footing: { color: 0xa08c74 },
     wall: { color: 0x5b8bd0, opacity: 0.55 },
     wallFooting: { color: 0xa08c74 },
+    frameColumn: { size: 0.8, color: 0x315b78 },
+    frameBeam: { size: 0.65, color: 0x477b9e },
+    frameBrace: { size: 0.45, color: 0xd9822b },
+    brbfBrace: { size: 0.55, color: 0x8252a3 },
+    brbfCore: { size: 0.9, color: 0xd14f7b },
+    momentJoint: { size: 1.15, color: 0x315b78 },
     diaphragm: { color: 0x6fa8dc, opacity: 0.2 },
     chord: { size: 0.9, color: 0xd9822b },
     collector: { size: 0.9, color: 0x9b59b6 }
@@ -19,8 +25,8 @@
 
   // Which member types take part in each mode. Ghosted types stay as faint context.
   LP.MODE_TYPES = {
-    gravity: { active: ['deck', 'beam', 'girder', 'column', 'footing'], ghost: ['wall', 'wallFooting'] },
-    lateral: { active: ['diaphragm', 'chord', 'collector', 'wall', 'wallFooting', 'storyForce'], ghost: ['beam', 'girder', 'column', 'footing'] }
+    gravity: { active: ['deck', 'beam', 'girder', 'column', 'footing'], ghost: ['wall', 'wallFooting', 'frameColumn', 'frameBeam', 'frameBrace', 'brbfBrace', 'brbfCore', 'momentJoint'] },
+    lateral: { active: ['diaphragm', 'chord', 'collector', 'wall', 'wallFooting', 'storyForce', 'frameColumn', 'frameBeam', 'frameBrace', 'brbfBrace', 'brbfCore', 'momentJoint'], ghost: ['beam', 'girder', 'column', 'footing'] }
   };
 
   LP.Scene = class {
@@ -105,6 +111,8 @@
 
     // Box sized and placed for one member. storyForce has no mesh: the overlay draws it as an arrow.
     meshFor(m) {
+      if (m.type === 'wall' && m.systemKind !== 'wall') return null;
+      if (m.type === 'wallFooting' && this.b.systemKind !== 'wall') return null;
       const s = STYLE[m.type];
       if (!s) return null;
       const a = m.a, c = m.b, len = Math.hypot(c.x - a.x, c.y - a.y), alongX = Math.abs(c.y - a.y) < 1e-6;
@@ -136,6 +144,25 @@
       return mesh;
     }
 
+    meshForSystemGraphic(part) {
+      const s = STYLE[part.type];
+      if (!s) return null;
+      const a = LP.toWorld(part.a), b = LP.toWorld(part.b);
+      let geometry;
+      if (part.type === 'momentJoint') {
+        geometry = new THREE.SphereGeometry(s.size / 2, 12, 8);
+      } else {
+        geometry = new THREE.BoxGeometry(a.distanceTo(b), s.size, s.size);
+      }
+      const mesh = new THREE.Mesh(geometry, new THREE.MeshLambertMaterial({ color: s.color }));
+      mesh.position.copy(a).add(b).multiplyScalar(0.5);
+      if (part.type !== 'momentJoint') {
+        mesh.quaternion.setFromUnitVectors(new THREE.Vector3(1, 0, 0), b.clone().sub(a).normalize());
+      }
+      mesh.userData = { id: part.id, type: part.type, baseColor: s.color, baseOpacity: 1 };
+      return mesh;
+    }
+
     build(b) {
       const reframe = !this.b || this.b.Lx !== b.Lx || this.b.Ly !== b.Ly;
       b.xLabels = b.xLabels.map((name, i) => this.gridNames.x[i] || name);
@@ -152,7 +179,17 @@
       this.meshes = {};
       Object.values(b.members).forEach(m => {
         const mesh = this.meshFor(m);
-        if (mesh) { this.meshes[m.id] = mesh; this.group.add(mesh); }
+        if (mesh) {
+          this.meshes[m.id] = [mesh];
+          this.group.add(mesh);
+        }
+      });
+      (b.systemGraphics || []).forEach(part => {
+        const mesh = this.meshForSystemGraphic(part);
+        if (!mesh) return;
+        if (!this.meshes[part.id]) this.meshes[part.id] = [];
+        this.meshes[part.id].push(mesh);
+        this.group.add(mesh);
       });
       if (this.selected && !b.members[this.selected]) this.selected = null;
       this.gridLines(b);
@@ -258,6 +295,7 @@
       const { axis, index } = this.elevationSection;
       const name = (axis === 'x' ? this.b.xLabels : this.b.yLabels)[index];
       const coordinate = (axis === 'x' ? this.b.xs : this.b.ys)[index];
+      const system = LP.SYSTEMS[this.b.inputs.lateral.system] || LP.SYSTEMS.specialRCWall;
       const hasReaction = this.mode === 'lateral' && this.b.walls.some(w => {
         const aligned = axis === 'x' ? w.dir === 'y' : w.dir === 'x';
         if (!aligned || Math.abs(w.at - coordinate) > 0.01) return false;
@@ -268,7 +306,7 @@
       });
       const reactionNote = this.mode !== 'lateral' ? ''
         : this.b.fromImport ? ' Imported-model lateral reactions are not calculated.'
-          : !hasReaction ? ` No ${this.b.inputs.lateral.dir.toUpperCase()}-direction wall reaction on this line.`
+          : !hasReaction ? ` No ${this.b.inputs.lateral.dir.toUpperCase()}-direction ${system.layoutName.toLowerCase()} reaction on this line.`
             : '';
       this.viewStatus.textContent = `Elevation: Gridline ${name} (${axis.toUpperCase()}).${reactionNote} Click Elevation to choose another line, or select a member to inspect its forces.`;
     }
@@ -461,7 +499,7 @@
         const v = m.results[mode] ? Math.abs(m.results[mode].value) : 0;
         max[m.type] = Math.max(max[m.type] || 0, v);
       });
-      Object.values(this.meshes).forEach(mesh => {
+      Object.values(this.meshes).flat().forEach(mesh => {
         const { id, type, baseColor, baseOpacity } = mesh.userData, m = b.members[id], mat = mesh.material;
         const active = types.active.includes(type), ghost = types.ghost.includes(type);
         mesh.visible = (active || ghost) && (!this.elevationSection || this.memberOnElevation(m, this.elevationSection));
@@ -469,7 +507,8 @@
         if (ghost) { mat.color.setHex(0xb8bec6); mat.opacity = 0.12; }
         else if (active) {
           const v = m.results[mode] ? Math.abs(m.results[mode].value) : 0;
-          mat.color.copy(v > 1e-9 ? LP.forceColor(v / (max[type] || 1)) : new THREE.Color(0xc9ced6)); // gray = no force in this mode
+          const colorType = type === 'wall' && b.systemKind !== 'wall' ? 'wall' : type;
+          mat.color.copy(v > 1e-9 ? LP.forceColor(v / (max[colorType] || 1)) : new THREE.Color(0xc9ced6)); // gray = no force in this mode
           mat.opacity = baseOpacity;
           if (this.traced && !this.traced.members.has(id)) mat.opacity = Math.min(baseOpacity, 0.18);
         }
@@ -497,7 +536,7 @@
         return;
       }
       const ghosts = LP.MODE_TYPES[this.mode].ghost;
-      const targets = Object.values(this.meshes).filter(o => o.visible && !ghosts.includes(o.userData.type)).concat(this.overlay.pickables);
+      const targets = Object.values(this.meshes).flat().filter(o => o.visible && !ghosts.includes(o.userData.type)).concat(this.overlay.pickables);
       const hit = this.raycaster.intersectObjects(targets, true).find(h => h.object.userData.id || (h.object.parent && h.object.parent.userData.id));
       const id = hit ? (hit.object.userData.id || hit.object.parent.userData.id) : null;
       this.select(id);
