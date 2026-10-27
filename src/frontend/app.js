@@ -138,6 +138,7 @@
   $('latMode').addEventListener('change', () => { showModeInputs(); setMode('lateral'); });
   $('flow').addEventListener('change', e => { view.overlay.showFlow = e.target.checked; view.refresh(); });
   $('diagrams').addEventListener('change', e => { view.overlay.showDiagrams = e.target.checked; view.refresh(); });
+  $('wallStyle').addEventListener('change', e => { view.overlay.wallStyle = e.target.value; setMode('lateral'); });
   $('clear').addEventListener('click', () => view.select(null));
   $('panel').addEventListener('click', e => {
     const id = e.target.dataset && e.target.dataset.id;

@@ -64,6 +64,25 @@ how we avoid two people rewriting the same file.
 
 ## Log
 
+### 2026-10-27 — Draw lateral load as staged arrows instead of dots
+**Who:** Nick (+ Claude Code) · **Branch:** feature/lateral-arrows
+
+- **What changed:** In lateral mode the flow dots are replaced by arrows that follow one level's load
+  down in five stages, one at a time, with a caption bar at the bottom of the 3D view (click a stage to
+  jump to it): (1) wind as an even grid of arrows on the face, or seismic as a grid on the floor;
+  (2) arrows that enter the diaphragm heading downwind and arc diagonally onto each wall line, landing
+  evenly along it; (3) collector forces growing toward the wall, labeled compression / tension;
+  (4) shear down the walls story by story, as a diagonal strut or as edge shear flow (View → Wall
+  arrows); (5) base shear plus uplift and compression at the wall ends. Gravity mode keeps its dots.
+- **Why:** dots didn't say which way load pushes or how it gets from the floor into the walls. The
+  design was iterated with Nick in a standalone prototype first.
+- **Files:** `src/frontend/lateral-arrows.js` (new), `src/frontend/overlay.js`,
+  `src/frontend/index.html`, `src/frontend/app.js`, `docs/load-path-explorer.md`, `CHANGELOG.md`
+- **Heads up:** the arrows follow the same level as the diagrams (the roof, or the clicked member's
+  level). All arrows share one size scale based on the largest base shear, except stages 1–2, whose
+  per-foot arrows are drawn larger than their true share so they're visible. Wall and foundation
+  arrows draw on top of the walls and footings. Imported models get no arrows (no analysis yet).
+
 ### 2026-10-27 — Diaphragm diagram: include the accidental torsion mass shift
 **Who:** Josh (+ Claude Code), approved by Nick (role 3 owner) · **Branch:** feature/lateral-loads
 
