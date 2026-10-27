@@ -42,6 +42,10 @@ Roles 5 and 6 share `lateral.js`: 5 edits only `storyForces` and `distribute`, 6
   - `results.gravity.tribArea = { rects: [{ x0, y0, x1, y1, z, area }], area }` on every deck, beam, girder, column and footing: the plan rectangles (ft, at elevation `z`) whose load the member carries, and their total in sq ft. A column lists one rectangle per level it supports (its own level first); a footing lists every level. Draw them as flat shaded patches with `LP.toWorld` to show the selected member's tributary area. Load = (D + L at `z`) x `area` for every rectangle, and `check.js` checks this for every member.
 - `b.paths[]`: `{ mode, from, to, value (kips), at: {x, y, z} connection point, note }`: one step of load transfer. The trace, the flow animation and the explain panel all read these.
 - `b.walls[]`: `{ id, name, dir ('x' runs along X at y = at, 'y' runs along Y at x = at), at, from, to, length }`
+- In **Custom layout**, assign a wall to an X or Y gridline, then set its start distance from the
+  south/west end and its length in feet. Up to five non-overlapping walls may be placed on each
+  gridline; placements must fit within the selected line. Symmetric and eccentric presets remain
+  available.
 - `b.inputs.lateral`: `{ type ('wind' | 'seismic'), dir ('x' | 'y'), mode, diaphragm ('flexible' | 'rigid'), accidentalTorsion }` plus the inputs for each mode:
   - `mode: 'override'` (default; a missing `mode` means this too): `windPressure` (psf), `Cs`
   - `mode: 'asce7'`: `riskCategory` ('I'–'IV'), `SDS`, `SD1` (g), `system` (`'specialRCWall'`, `'ordinaryRCWall'`, `'specialMasonryWall'`), `windSpeed` (mph), `exposure` ('B' | 'C' | 'D'). Role 5 sets `LP.asce7Ready = true` in `lateral.js` once `storyForces` reads these; until then the app warns and uses the override values. Spec: `docs/role5-inputs.md` on `feature/lateral-loads`.

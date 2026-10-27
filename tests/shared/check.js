@@ -104,6 +104,17 @@ check('Level 2 chord = (0.28 klf x 50^2 / 8) / 60', l(b, 'CHORD-L2-W'), 1.458);
 check('Level 2 collector on y = 0 = 7 k x 30 / 60', l(b, 'COLL-L2-x0'), 3.5);
 check('East-west walls carry no X load (flexible)', l(b, 'WW-L2'), 0);
 
+console.log('\nLateral: custom wall layout with five walls on one gridline');
+const customWalls = Array.from({ length: 5 }, (_, i) => ({
+  id: `CW${i + 1}`, name: `Shear wall ${i + 1}`, dir: 'x', at: 0, from: i * 12, to: (i + 1) * 12
+})).concat([{ id: 'CW6', name: 'Shear wall 6', dir: 'x', at: 50, from: 15, to: 30 }]);
+const custom = run({}, customWalls);
+check('Custom wall count includes five walls on one line and one on another', custom.walls.length, 6);
+check('Fifth wall endpoint is at 60 ft', custom.members['CW5-L2'].b.x, 60);
+check('Fifth custom wall length is 12 ft', custom.walls[4].length, 12);
+check('Five walls share their gridline reaction by length', l(custom, 'CW1-R'), 0.7);
+check('Custom wall on a second gridline receives its tributary reaction', l(custom, 'CW6-R'), 3.5);
+
 console.log('\nLateral: seismic X, Cs = 0.1');
 b = run({ type: 'seismic' });
 check('Base shear = 0.1 x (240 + 90)', l(b, 'LAT-L2') + l(b, 'LAT-R'), 33);

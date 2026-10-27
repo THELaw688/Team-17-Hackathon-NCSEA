@@ -68,6 +68,17 @@ how we avoid two people rewriting the same file.
 
 ## Log
 
+### 2026-10-27 — Configure shear wall gridlines and lengths
+**Who:** Kevin (+ Copilot SDK in VS Code) · **Branch:** feature/shear-wall-layout
+
+- **What changed:** Added a custom shear-wall layout editor to assign walls to X/Y gridlines and
+  specify each wall's start position and length. Up to five non-overlapping walls are allowed on
+  each gridline, and placements are checked against the selected line's dimensions.
+- **Why:** Place lateral systems on chosen frame lines and control their locations and lengths.
+- **Files:** `src/frontend/index.html`, `src/frontend/app.js`, `tests/shared/check.js`,
+  `docs/load-path-explorer.md`, `CHANGELOG.md`
+- **Heads up:** Existing symmetric and eccentric wall presets remain unchanged.
+
 ### 2026-10-27 — Gravity results now include each member's tributary area
 **Who:** Zack (+ Claude Code) · **Branch:** feature/gravity
 
