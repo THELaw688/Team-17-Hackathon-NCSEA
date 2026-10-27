@@ -60,7 +60,9 @@ Team-24-Hackathon-NCSEA/
 │   └── shared/         # types, constants, helpers used by both sides
 ├── data/               # sample and seed data (small files only, no large datasets)
 ├── tests/              # automated tests, mirroring the src/ layout
-└── scripts/            # setup, build, and one-off utility scripts
+├── scripts/            # setup, build, and one-off utility scripts
+└── presentation/       # demo materials — lives on the `presentation` branch
+
 ```
 
 **Rules of thumb**
@@ -154,6 +156,7 @@ rejected are worth recording.
 | `dev` | Integration branch. Features merge here first and get tested together. |
 | `feature/frontend` | UI work. |
 | `feature/backend` | API, data, and logic work. |
+| `presentation` | Demo and judging materials — slides, script, screenshots, talking points. Kept off the code branches so slide edits never conflict with code. |
 
 Need a branch of your own? Base it on `dev` and name it for what it does:
 
@@ -162,6 +165,16 @@ git checkout dev
 git pull
 git checkout -b feature/load-calculator
 ```
+
+Working on the demo instead of code? Switch to the presentation branch:
+
+```bash
+git checkout presentation
+git pull
+```
+
+Keep slides, the demo script, and screenshots in `presentation/` there. It merges into `main`
+near the end, or never — it exists so presentation work and code work stay out of each other's way.
 
 ### The normal loop
 

@@ -58,6 +58,18 @@ how we avoid two people rewriting the same file.
 
 ## Log
 
+### 2026-10-27 — Add presentation branch
+**Who:** Sam (+ Claude Code) · **Branch:** main
+
+- **What changed:** Created the `presentation` branch off `main` for demo and judging materials —
+  slides, demo script, screenshots, talking points. Documented it in the README's branch table,
+  folder structure, and a short "working on the demo" section.
+- **Why:** Presentation work and code work touch completely different files and happen on different
+  schedules. Separating them means nobody editing slides collides with somebody editing code.
+- **Files:** `README.md`, `CHANGELOG.md`
+- **Heads up:** Demo materials go in a `presentation/` folder **on that branch**, not on `main`.
+  Switch with `git checkout presentation`. It merges into `main` late or not at all.
+
 ### 2026-10-27 — Remove connection test files
 **Who:** Sam (+ Claude Code) · **Branch:** main
 
