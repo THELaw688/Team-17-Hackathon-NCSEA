@@ -52,7 +52,9 @@ markers, order the two by date, done. Never resolve a conflict here by discardin
 Add a line when you start something that will take a while, and remove it when you're done. This is
 how we avoid two people rewriting the same file.
 
-- _(nothing in progress)_
+- **Josh (+ Claude Code)** — Role 5, lateral loads + diaphragm: `LP.storyForces` and
+  `LP.distribute` in `src/shared/lateral.js` (ASCE 7 inputs, 5% accidental torsion, semi-rigid
+  note). Branch `feature/lateral-loads`. Role 6: `runLateral` in the same file is yours, I won't touch it.
 
 ---
 
