@@ -14,7 +14,9 @@
       this.pickables = [];
       this.showFlow = true;
       this.showDiagrams = true;
+      this.wallStyle = 'strut';   // lateral arrows in the walls: 'strut' | 'edges'
       this.dot = new THREE.SphereGeometry(1, 10, 8);
+      this.lateralArrows = new LP.LateralArrows(view);
     }
 
     clear() {
@@ -53,6 +55,7 @@
      */
     update(b, mode, traced, selected) {
       this.clear();
+      this.lateralArrows.clear();
       const k = v => `${LP.round(v, 1)} k`;
       const res = id => b.members[id].results[mode];
 
@@ -92,8 +95,16 @@
         this.label(`${b.members[selected].label}: ${k(res(selected).value)}`, LP.toWorld(Object.assign({}, c, { z: c.z + 4 })), 1.1);
       }
 
-      // Load flow: one moving dot per path, from the member giving load to the connection point.
       if (!this.showFlow) return;
+      // Lateral load is drawn as staged arrows following one level down (lateral-arrows.js), on the
+      // same level as the diagrams. Imported models have no analysis to draw.
+      if (mode === 'lateral') {
+        const m = selected && b.members[selected];
+        if (!b.fromImport) this.lateralArrows.build(b, m && m.level !== undefined ? m.level : b.levels.length - 1, this.wallStyle);
+        return;
+      }
+
+      // Gravity load flow: one moving dot per path, from the member giving load to the connection point.
       const paths = (traced ? traced.paths : b.paths.filter(p => p.mode === mode && Math.abs(p.value) > 1e-9)).slice(0, 1200);
       const maxV = Math.max(...paths.map(p => Math.abs(p.value)), 1e-9);
       paths.forEach((p, i) => {
@@ -176,6 +187,7 @@
 
     tick(time) {
       this.particles.forEach(p => p.dot.position.lerpVectors(p.a, p.b, (time / 1000 * 0.45 + p.offset) % 1));
+      this.lateralArrows.tick(time);
     }
   };
 })(typeof window !== 'undefined' ? window : globalThis);
