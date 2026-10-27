@@ -39,6 +39,7 @@ Roles 5 and 6 share `lateral.js`: 5 edits only `storyForces` and `distribute`, 6
 - `b.members{id}`: `{ id, type, label, level, a: {x, y, z}, b: {x, y, z}, results: { gravity, lateral } }`
   - types: `deck, beam, girder, column, footing, diaphragm, storyForce, chord, collector, wall, wallFooting`
   - `results[mode] = { value (kips, magnitude used for color), unit, calc: [lines shown in the panel], ...extras }`
+  - `results.gravity.tribArea = { rects: [{ x0, y0, x1, y1, z, area }], area }` on every deck, beam, girder, column and footing: the plan rectangles (ft, at elevation `z`) whose load the member carries, and their total in sq ft. A column lists one rectangle per level it supports (its own level first); a footing lists every level. Draw them as flat shaded patches with `LP.toWorld` to show the selected member's tributary area. Load = (D + L at `z`) x `area` for every rectangle, and `check.js` checks this for every member.
 - `b.paths[]`: `{ mode, from, to, value (kips), at: {x, y, z} connection point, note }`: one step of load transfer. The trace, the flow animation and the explain panel all read these.
 - `b.walls[]`: `{ id, name, dir ('x' runs along X at y = at, 'y' runs along Y at x = at), at, from, to, length }`
 - Units: ft, psf, kips, kip-ft. Plan x = east, plan y = north, z = elevation. The 3D view maps (x, y, z) to Three.js (x, z, -y).

@@ -65,6 +65,25 @@ how we avoid two people rewriting the same file.
 
 ## Log
 
+### 2026-10-27 — Gravity results now include each member's tributary area
+**Who:** Zack (+ Claude Code) · **Branch:** feature/gravity
+
+- **What changed:** `LP.runGravity` now puts `tribArea = { rects, area }` on every deck, beam,
+  girder, column and footing: the plan rectangles the member's load comes from. Columns list one
+  rectangle per level they support; footings list all levels. Column calcs in the panel now start
+  with "Tributary area at Level 2 = 30 ft x 25 ft = 750 sq ft". Added 9 checks, including one that
+  every member in four test buildings carries exactly pressure x its tributary area.
+- **Why:** so the 3D view can shade the tributary area of the selected member, the clearest way
+  to show where a member's load comes from.
+- **Files:** `src/shared/gravity.js`, `tests/shared/check.js`, `docs/load-path-explorer.md`,
+  `CHANGELOG.md`
+- **Heads up:** **Roles 2 and 3:** the data is ready, nothing draws it yet. The field is
+  documented in `docs/load-path-explorer.md`. Draw each rectangle as a flat patch at its `z`
+  with `LP.toWorld`. It's named `tribArea` because beams already use `trib` for the tributary
+  *width* (a number). No change to load values; all 49 checks pass. Merged the latest `dev`
+  (Sam's IFC import) into this branch first. Imported IFC models still aren't analysed, so they
+  have no `tribArea`.
+
 ### 2026-10-27 — Add gravity check cases: edge and corner columns, unequal bays, one-bay buildings
 **Who:** Zack (+ Claude Code) · **Branch:** feature/gravity
 

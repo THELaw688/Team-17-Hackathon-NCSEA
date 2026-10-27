@@ -75,6 +75,25 @@ check('Girders carry nothing with no filler beams', g(bare, 'GD-R-A-0'), 0);
 check('Footing A1 = 50 psf x 187.5 sq ft', g(bare, 'FTG-A1'), 9.375);
 check('Sum of footings = 50 psf x 30 x 25', footingSum(bare), 37.5);
 
+console.log('\nGravity: tributary areas (what the 3D view shades for a selected member)');
+const ta = (m, id) => m.members[id].results.gravity.tribArea;
+check('Filler beam BM-L2-10-0 = 10 ft x 25 ft', ta(b, 'BM-L2-10-0').area, 250);
+check('Girder B, bay 1-2 = 2 beams x 10 ft x (12.5 + 12.5) ft', ta(b, 'GD-L2-B-0').area, 500);
+check('Unequal bays: column B2 at Level 2 = 30 ft x 27 ft', ta(u, 'COL-B2-L2').rects[0].area, 810);
+check('Unequal bays: column B2, story 1 = Level 2 + roof = 2 x 810', ta(u, 'COL-B2-L2').area, 1620);
+check('Footing A1 = 2 levels x 15 ft x 12.5 ft', ta(b, 'FTG-A1').area, 375);
+// Every member in every test building: load = sum of (D + L at that level) x its tributary rectangles.
+// Columns and footings are checked on their total, so this also covers the column-above chain.
+const wAt = (m, z) => { const lv = m.levels.find(v => Math.abs(v.elev - z) < 1e-6); return lv.dead + lv.live; };
+[['2 x 2', b], ['unequal bays', u], ['one bay', one], ['no filler beams', bare]].forEach(([name, m]) => {
+  const bad = Object.values(m.members).filter(x => x.results.gravity).filter(x => {
+    const gr = x.results.gravity, fromArea = gr.tribArea.rects.reduce((s, q) => s + wAt(m, q.z) * q.area / 1000, 0);
+    return Math.abs(fromArea - gr.value) > 0.001 * Math.max(1, gr.value);
+  });
+  if (bad.length) console.log(`      mismatched: ${bad.map(x => x.id).join(', ')}`);
+  check(`${name}: members whose load != pressure x tributary area`, bad.length, 0);
+});
+
 console.log('\nLateral: wind X, 20 psf, flexible');
 check('Level 2 story force = 20 x 50 x 14 / 1000', l(b, 'LAT-L2'), 14);
 check('Roof story force = 20 x 50 x 7 / 1000', l(b, 'LAT-R'), 7);
