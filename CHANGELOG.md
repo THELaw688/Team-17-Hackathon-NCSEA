@@ -58,6 +58,16 @@ how we avoid two people rewriting the same file.
 
 ## Log
 
+### 2026-10-27 — Remove connection test files
+**Who:** Sam (+ Claude Code) · **Branch:** main
+
+- **What changed:** Deleted `test.txt` and `test2.txt`.
+- **Why:** They only existed to prove the clone and push worked. That's confirmed, so they were
+  noise in the repo root.
+- **Files:** `test.txt`, `test2.txt` (both deleted)
+- **Heads up:** The repo now contains only `README.md` and `CHANGELOG.md`. If you cloned earlier and
+  still see the test files, `git pull` will remove them.
+
 ### 2026-10-27 — Add team README and changelog
 **Who:** Sam (+ Claude Code) · **Branch:** main
 
