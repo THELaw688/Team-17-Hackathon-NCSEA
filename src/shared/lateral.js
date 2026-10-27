@@ -73,23 +73,21 @@
     const crP = sumKp ? perp.reduce((s, w) => s + w.length * w.at, 0) / sumKp : 0;
     const e = depth / 2 - cr;
     // ASCE 7 12.8.4.2: for seismic, also shift the mass +/-5% of the building width across the load.
-    // Each wall keeps whichever shift is worse for it, so wall forces can sum to more than F.
     const eAcc = L.type === 'seismic' && L.accidentalTorsion !== false ? 0.05 * depth : 0;
     const J = par.reduce((s, w) => s + w.length * (w.at - cr) ** 2, 0) + perp.reduce((s, w) => s + w.length * (w.at - crP) ** 2, 0);
     if (J === 0 && (Math.abs(e) > 1e-6 || eAcc)) b.warnings.push('Walls cannot resist torsion: the rigid diaphragm is unstable.');
-    b.rigid = { cr, e, eAcc, J, sumK };
     const cases = eAcc ? [e + eAcc, e - eAcc] : [e];
     const twist = (ec, w, c) => (J ? F * ec / J : 0) * w.length * (w.at - c);
-    const eNote = ec => eAcc ? `e = ${r(e)} ${ec > e ? '+' : '-'} ${r(eAcc)} accidental = ${r(ec)} ft` : `e = ${r(e)} ft`;
-    return par.map(w => {
-      const ec = cases.reduce((a, x) => twist(x, w, cr) > twist(a, w, cr) ? x : a), Vt = twist(ec, w, cr);
-      return { wall: w, V: F * w.length / sumK + Vt,
-        note: `Rigid: direct ${r(F * w.length / sumK)} k (k = L = ${r(w.length)} of ${r(sumK)}) + torsion ${r(Vt)} k (${eNote(ec)})` };
-    }).concat(perp.map(w => {
-      const ec = cases.reduce((a, x) => Math.abs(twist(x, w, crP)) > Math.abs(twist(a, w, crP)) ? x : a), Vt = -twist(ec, w, crP);
-      return { wall: w, V: Vt, torsion: true,
-        note: `Rigid: torsion only, ${r(Vt)} k (perpendicular wall resisting twist, ${eNote(ec)})` };
-    }));
+    // One shift per story keeps the floor in equilibrium, so the diaphragm diagrams close. Use the
+    // shift that loads the heaviest wall; the opposite shift mirrors it onto the walls on the other side.
+    const peak = x => Math.max(...par.map(w => F * w.length / sumK + twist(x, w, cr)));
+    const ec = cases.reduce((a, x) => peak(x) > peak(a) + 1e-9 ? x : a);
+    b.rigid = { cr, e, eAcc, ec, J, sumK };
+    const eNote = eAcc ? `e = ${r(e)} ${ec > e ? '+' : '-'} ${r(eAcc)} accidental = ${r(ec)} ft; design each wall for the worse of +/-5%` : `e = ${r(e)} ft`;
+    return par.map(w => ({ wall: w, V: F * w.length / sumK + twist(ec, w, cr),
+      note: `Rigid: direct ${r(F * w.length / sumK)} k (k = L = ${r(w.length)} of ${r(sumK)}) + torsion ${r(twist(ec, w, cr))} k (${eNote})` }))
+      .concat(perp.map(w => ({ wall: w, V: -twist(ec, w, crP), torsion: true,
+        note: `Rigid: torsion only, ${r(-twist(ec, w, crP))} k (perpendicular wall resisting twist, ${eNote})` })));
   };
 
   // ---- Role 6: collectors, chords, walls, overturning -------------------------
