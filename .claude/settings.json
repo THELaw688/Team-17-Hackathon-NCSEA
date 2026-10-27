@@ -1,0 +1,16 @@
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash scripts/session-start.sh",
+            "timeout": 60,
+            "statusMessage": "Pulling latest and reading CHANGELOG..."
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -1,2 +1,0 @@
-Second connection test for Team 24 Hackathon NCSEA.
-Created 2026-10-27 to verify pushes keep working from the local clone.

@@ -1,0 +1,76 @@
+#!/bin/sh
+#
+# Refuse a commit when the current branch is behind origin.
+#
+# The failure this prevents: you pull in the morning, work all afternoon against
+# stale files, and only discover the divergence when the push conflicts. By then
+# the stale assumptions are baked into your commits.
+#
+# Escape hatches, in order of preference:
+#   git pull                     -- the right fix
+#   ALLOW_STALE=1 git commit ... -- commit anyway, deliberately
+#   git commit --no-verify       -- skip every hook (blunt instrument)
+
+# Deliberate override.
+if [ "$ALLOW_STALE" = "1" ]; then
+    exit 0
+fi
+
+# A merge or rebase in progress is the fix for being behind, not an instance of
+# it — HEAD still trails origin until the merge commit exists. Blocking here
+# would make the problem unresolvable.
+git_dir=$(git rev-parse --git-dir 2>/dev/null)
+if [ -f "$git_dir/MERGE_HEAD" ] || [ -d "$git_dir/rebase-merge" ] || [ -d "$git_dir/rebase-apply" ]; then
+    exit 0
+fi
+
+# A branch with no upstream has nothing to be behind. New feature branches hit
+# this until their first push, which is fine.
+upstream=$(git rev-parse --abbrev-ref --symbolic-full-name '@{u}' 2>/dev/null)
+if [ -z "$upstream" ]; then
+    exit 0
+fi
+
+# Offline, or GitHub unreachable. Warn but let the commit through — blocking work
+# because the wifi dropped would be worse than the staleness we're guarding against.
+if ! git fetch --quiet 2>/dev/null; then
+    echo "NOTE: could not reach origin to check for updates. Committing anyway."
+    exit 0
+fi
+
+behind=$(git rev-list --count "HEAD..$upstream" 2>/dev/null)
+if [ -z "$behind" ] || [ "$behind" -eq 0 ]; then
+    exit 0
+fi
+
+ahead=$(git rev-list --count "$upstream..HEAD" 2>/dev/null)
+
+echo ""
+echo "============================================================"
+echo "  COMMIT BLOCKED - your branch is $behind commit(s) behind"
+echo "  $upstream"
+echo "============================================================"
+echo ""
+echo "  Someone has pushed work you do not have yet. Committing now"
+echo "  means building on something old."
+echo ""
+echo "  Fix it:"
+echo ""
+echo "      git stash          # park your changes"
+echo "      git pull           # get their work"
+echo "      git stash pop      # bring yours back"
+echo ""
+echo "  Then read the new entries at the top of CHANGELOG.md before"
+echo "  you continue - they say what changed and why."
+echo ""
+if [ -n "$ahead" ] && [ "$ahead" -gt 0 ]; then
+    echo "  (You are also $ahead commit(s) ahead - those are safe, they"
+    echo "   are already committed locally.)"
+    echo ""
+fi
+echo "  Genuinely need to commit anyway?"
+echo ""
+echo "      ALLOW_STALE=1 git commit ..."
+echo ""
+
+exit 1
