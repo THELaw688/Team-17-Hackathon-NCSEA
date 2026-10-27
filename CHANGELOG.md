@@ -61,6 +61,19 @@ how we avoid two people rewriting the same file.
 
 ## Log
 
+### 2026-10-27 — Add camera view presets and grid bubbles
+**Who:** Nick (+ Claude Code) · **Branch:** feature/camera-views
+
+- **What changed:** 3D / Plan / Front / Side buttons at the top right of the 3D view glide the
+  camera to each preset. Plan and elevations use a narrow field of view so they read like drawings.
+  Dashed grid lines and bubbles (1, 2, 3... along X; A, B, C... along Y) are drawn on the ground.
+- **Why:** plan view makes the diaphragm diagrams (PR #2) easy to read, and grid bubbles let people
+  match member labels like "Column B2" to the model.
+- **Files:** `src/frontend/scene.js`, `docs/load-path-explorer.md`, `CHANGELOG.md`
+- **Heads up:** the view buttons are created by `scene.js` itself, so `index.html` and `app.js` are
+  unchanged. Branched from `dev` before PR #2 merged; if both PRs edit the top of this log, keep both
+  entries.
+
 ### 2026-10-27 — Draw diaphragm shear, moment, chord and collector diagrams in 3D
 **Who:** Nick (+ Claude Code) · **Branch:** feature/diaphragm-diagrams
 

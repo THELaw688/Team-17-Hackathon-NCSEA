@@ -48,6 +48,20 @@
       this.raycaster = new THREE.Raycaster();
       this.overlay = new LP.Overlay(this);
 
+      // View buttons live in the scene so the page layout doesn't need to know about them.
+      this.bar = document.createElement('div');
+      this.bar.style.cssText = 'position:absolute;top:12px;right:12px;display:flex;gap:4px;';
+      [['3d', '3D'], ['plan', 'Plan'], ['front', 'Front'], ['side', 'Side']].forEach(([key, text]) => {
+        const btn = document.createElement('button');
+        btn.textContent = text;
+        btn.dataset.view = key;
+        btn.title = { '3d': 'Isometric view', plan: 'Looking down from above', front: 'Looking north at the south face', side: 'Looking west at the east face' }[key];
+        btn.style.cssText = 'font:inherit;font-size:12px;padding:4px 10px;border:1px solid #d5dae0;border-radius:4px;background:#fff;cursor:pointer;';
+        btn.addEventListener('click', () => this.setView(key));
+        this.bar.appendChild(btn);
+      });
+      container.appendChild(this.bar);
+
       let down = null;
       const el = this.renderer.domElement;
       el.addEventListener('pointerdown', e => { down = [e.clientX, e.clientY]; });
@@ -59,6 +73,7 @@
       this.resize();
       const loop = t => {
         requestAnimationFrame(loop);
+        if (this.tween) this.stepTween(t);
         this.controls.update();
         this.overlay.tick(t);
         this.renderer.render(this.scene, this.camera);
@@ -116,15 +131,86 @@
         if (mesh) { this.meshes[m.id] = mesh; this.group.add(mesh); }
       });
       if (this.selected && !b.members[this.selected]) this.selected = null;
-      if (reframe) this.frame();
+      this.gridLines(b);
+      if (reframe) this.setView('3d', true);
       this.refresh();
     }
 
-    frame() {
+    /**
+     * Move the camera to a preset view, gliding there unless instant.
+     * @param {'3d'|'plan'|'front'|'side'} name plan and elevations use a narrow field of view so they
+     *   read almost like drawings, without the perspective making columns lean
+     */
+    setView(name, instant) {
       const b = this.b, H = b.levels.at(-1).elev, size = Math.max(b.Lx, b.Ly, H);
-      const target = LP.toWorld({ x: b.Lx / 2, y: b.Ly / 2, z: H / 2 });
-      this.controls.target.copy(target);
-      this.camera.position.copy(target.clone().add(new THREE.Vector3(-1.1 * size, 0.8 * size, 1.4 * size)));
+      const target = LP.toWorld({ x: b.Lx / 2, y: b.Ly / 2, z: name === 'plan' ? H : H / 2 });
+      const fov = name === '3d' ? 40 : 12, dist = 0.58 * size / Math.tan(fov * Math.PI / 360) + 20;
+      const offset = {
+        '3d': new THREE.Vector3(-1.1, 0.8, 1.4).multiplyScalar(size),
+        plan: new THREE.Vector3(0, dist, 0.01),   // a hair off vertical keeps the orbit controls stable
+        front: new THREE.Vector3(0, 0, dist),
+        side: new THREE.Vector3(dist, 0, 0)
+      }[name];
+      this.tween = {
+        t0: instant ? -Infinity : performance.now(),
+        fromPos: this.camera.position.clone(), toPos: target.clone().add(offset),
+        fromTarget: this.controls.target.clone(), toTarget: target,
+        fromFov: this.camera.fov, toFov: fov
+      };
+      if (instant) this.stepTween(0);
+      this.bar.querySelectorAll('button').forEach(btn => {
+        btn.style.background = btn.dataset.view === name ? '#2f6fd0' : '#fff';
+        btn.style.color = btn.dataset.view === name ? '#fff' : '';
+      });
+    }
+
+    stepTween(time) {
+      const tw = this.tween, u = Math.min(1, (time - tw.t0) / 600), e = u * u * (3 - 2 * u);
+      this.camera.position.lerpVectors(tw.fromPos, tw.toPos, e);
+      this.controls.target.lerpVectors(tw.fromTarget, tw.toTarget, e);
+      this.camera.fov = tw.fromFov + (tw.toFov - tw.fromFov) * e;
+      this.camera.updateProjectionMatrix();
+      if (u === 1) this.tween = null;
+    }
+
+    // Grid lines on the ground with bubbles: numbers along X, letters along Y, as on the drawings.
+    gridLines(b) {
+      const mat = new THREE.LineDashedMaterial({ color: 0x8a95a3, dashSize: 2, gapSize: 1.5 });
+      const line = (p, q) => {
+        const l = new THREE.Line(new THREE.BufferGeometry().setFromPoints([LP.toWorld(p), LP.toWorld(q)]), mat);
+        l.computeLineDistances();
+        this.group.add(l);
+      };
+      b.xs.forEach((x, i) => {
+        line({ x, y: -9, z: 0.05 }, { x, y: b.Ly + 4, z: 0.05 });
+        this.bubble(b.xLabels[i], { x, y: -12, z: 0.05 });
+      });
+      b.ys.forEach((y, j) => {
+        line({ x: -9, y, z: 0.05 }, { x: b.Lx + 4, y, z: 0.05 });
+        this.bubble(b.yLabels[j], { x: -12, y, z: 0.05 });
+      });
+    }
+
+    bubble(text, p) {
+      const c = document.createElement('canvas'), g = c.getContext('2d');
+      c.width = c.height = 64;
+      g.fillStyle = '#ffffff';
+      g.strokeStyle = '#1d2733';
+      g.lineWidth = 4;
+      g.beginPath();
+      g.arc(32, 32, 28, 0, 2 * Math.PI);
+      g.fill();
+      g.stroke();
+      g.fillStyle = '#1d2733';
+      g.font = '600 30px system-ui, sans-serif';
+      g.textAlign = 'center';
+      g.textBaseline = 'middle';
+      g.fillText(text, 32, 34);
+      const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(c), depthTest: false }));
+      sp.scale.set(4.5, 4.5, 1);
+      sp.position.copy(LP.toWorld(p));
+      sp.renderOrder = 6;
+      this.group.add(sp);
     }
 
     setMode(mode) { this.mode = mode; this.refresh(); }
