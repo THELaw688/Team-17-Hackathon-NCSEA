@@ -1,0 +1,2 @@
+Connection test for Team 24 Hackathon NCSEA.
+Created 2026-10-27 to verify the local clone and push to GitHub are working.
