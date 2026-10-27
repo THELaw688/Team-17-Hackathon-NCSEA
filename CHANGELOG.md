@@ -78,7 +78,8 @@ how we avoid two people rewriting the same file.
   collector next to a 16.5 k base shear shrank to specks.
 - **Files:** `src/frontend/lateral-arrows.js`, `CHANGELOG.md`
 - **Heads up:** collector arrow size now compares collectors with each other, not with the walls; the
-  labels carry the actual forces.
+  labels carry the actual forces. All collector arrows now point with the load: compression segments
+  push into the wall (growing toward it), tension segments pull it along (shrinking away from it).
 
 ### 2026-10-27 — Gravity results now include each member's tributary area
 **Who:** Zack (+ Claude Code) · **Branch:** feature/gravity

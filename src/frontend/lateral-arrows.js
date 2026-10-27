@@ -190,10 +190,13 @@
         if (Ll - cur > 0.5) segs.push([cur, Ll]);
         segs.forEach(([a0, a1]) => {
           const toRight = ws.some(w => Math.abs(w.from - a1) < 0.5), flowSign = toRight ? 1 : -1;
-          const d = D(ax.x * flowSign, ax.y * flowSign), m = Math.max(3, Math.round((a1 - a0) / 6));
+          // Every collector arrow points with the load and travels that way: on the upwind side it
+          // pushes into the wall, growing; on the downwind side it pulls the wall along, shrinking
+          // as it moves away.
+          const forceSign = Math.sign(R) || 1, d = D(ax.x * forceSign, ax.y * forceSign), m = Math.max(3, Math.round((a1 - a0) / 6));
           for (let k = 0; k < m; k++) {
             this.add(2, u => {
-              const f = (k + u) / m, o = toRight ? a0 + (a1 - a0) * f : a1 - (a1 - a0) * f;
+              const f = (k + u) / m, o = forceSign > 0 ? a0 + (a1 - a0) * f : a1 - (a1 - a0) * f;
               return centred(linePt(o, 3.5), d, collSize(Fat(o)), 0.4 + 0.6 * Math.min(1, Math.abs(Fat(o)) / collMax));
             });
           }
