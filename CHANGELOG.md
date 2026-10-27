@@ -68,6 +68,32 @@ how we avoid two people rewriting the same file.
 
 ## Log
 
+### 2026-10-27 — Draw gravity load as glowing strips instead of dots
+**Who:** Zack (+ Claude Code), for role 3 review · **Branch:** feature/gravity-glow
+
+- **What changed:** In gravity mode the flow dots are replaced by a staged glow for one level (the
+  roof, or the clicked member's level), with a caption bar and stage chips like the lateral arrows:
+  1. Deck: a glowing zigzag (the ribbed deck profile), as long as the bay, travels from mid-span
+     out to each beam.
+  2. Beams: each beam glows along its length, then splits at mid-span and slides to both ends.
+  3. Girders: the same, into the columns.
+  4. Columns: a pulse runs down to grade.
+  5. Footings: they pulse.
+
+  Brightness scales with load within each member type, and captions quote numbers from the
+  analysis. New `src/frontend/gravity-flow.js` (`LP.GravityFlow`, same shape as `LP.LateralArrows`).
+- **Why:** dots didn't show how load moves through a floor system: across the deck, along each
+  beam to its ends, then into girders and columns. The zigzag keeps the deck stage visually
+  different from the framing stages.
+- **Files:** `src/frontend/gravity-flow.js` (new), `src/frontend/overlay.js`,
+  `src/frontend/index.html`, `src/frontend/app.js` (panel text), `docs/load-path-explorer.md`,
+  `CHANGELOG.md`
+- **Heads up:** **This edits role 3's `overlay.js`** (Nick, please review): the gravity dot loop,
+  `particles` and the dot geometry are gone; the overlay now calls `gravityFlow.build` / `tick`
+  the way it calls `lateralArrows`. One script tag added to role 1's `index.html`, and the gravity
+  panel text in `app.js` now describes the glow instead of dots. Lateral mode is unchanged. The
+  earlier `test/gravity-flow` branch is superseded and can be deleted.
+
 ### 2026-10-27 — ASCE 7 wind story forces (Input mode: ASCE 7)
 **Who:** Josh (+ Claude Code) · **Branch:** feature/lateral-loads
 
