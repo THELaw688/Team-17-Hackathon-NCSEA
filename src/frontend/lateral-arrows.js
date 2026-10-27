@@ -32,7 +32,7 @@
 
       // Caption bar: stage chips (click to jump) and one line saying what is happening.
       this.bar = document.createElement('div');
-      this.bar.style.cssText = 'position:absolute;left:50%;bottom:12px;transform:translateX(-50%);width:min(640px,calc(100% - 340px));' +
+      this.bar.style.cssText = 'position:absolute;right:12px;bottom:12px;width:min(520px,calc(100% - 240px));' +
         'background:rgba(255,255,255,.96);border:1px solid #d5dae0;border-radius:8px;padding:6px 10px;font-size:12px;display:none;';
       this.chips = STAGES.map((s, i) => {
         const chip = document.createElement('span');
