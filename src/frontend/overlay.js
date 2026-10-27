@@ -53,11 +53,20 @@
      * Redraw arrows, labels and flow dots.
      * @param {object} traced result of LP.trace, or null to animate every path in the mode
      */
-    update(b, mode, traced, selected) {
+    update(b, mode, traced, selected, elevation) {
       this.clear();
       this.lateralArrows.clear();
       const k = v => `${LP.round(v, 1)} k`;
       const res = id => b.members[id].results[mode];
+
+      if (elevation) {
+        if (mode === 'lateral') this.elevationReactions(b, elevation, k);
+        if (selected && res(selected)) {
+          const member = b.members[selected], c = LP.center(member);
+          this.label(`${member.label}: ${k(res(selected).value)}`, LP.toWorld(Object.assign({}, c, { z: c.z + 4 })), 1.1);
+        }
+        return;
+      }
 
       if (mode === 'lateral') {
         const dir = b.inputs.lateral.dir, dv = dir === 'x' ? { x: 1, y: 0 } : { x: 0, y: 1 };
@@ -121,6 +130,36 @@
         dot.renderOrder = 5;
         this.group.add(dot);
         this.particles.push({ dot, a: LP.toWorld(start), b: LP.toWorld(end), offset: (i * 0.618) % 1 });
+      });
+    }
+
+    elevationReactions(b, elevation, k) {
+      if (b.fromImport) return;
+      const coordinate = (elevation.axis === 'x' ? b.xs : b.ys)[elevation.index];
+      const walls = b.walls.filter(w =>
+        (elevation.axis === 'x' ? w.dir === 'y' : w.dir === 'x') &&
+        Math.abs(w.at - coordinate) <= 0.01);
+      walls.forEach(w => {
+        const baseMember = b.members[`${w.id}-${b.levels[0].tag}`];
+        const base = baseMember.results.lateral;
+        const hasReaction = b.levels.some(lv => {
+          const result = b.members[`${w.id}-${lv.tag}`].results.lateral;
+          return result && (Math.abs(result.shear || 0) > 1e-9 || Math.abs(result.holdDown || 0) > 1e-9);
+        });
+        if (!hasReaction || !base) return;
+        b.levels.forEach(lv => {
+          const member = b.members[`${w.id}-${lv.tag}`];
+          const result = member.results.lateral;
+          if (!result || result.shear == null) return;
+          const center = LP.center(member);
+          if (w.dir === 'x') center.x += 3;
+          else center.y += 3;
+          this.label(`${lv.name} ${w.name}: V ${k(result.shear)}`, LP.toWorld(Object.assign(center, { z: (lv.elev + lv.below) / 2 })), 0.8);
+        });
+        const center = LP.center(baseMember);
+        if (w.dir === 'x') center.x += 3;
+        else center.y += 3;
+        this.label(`${w.name} base: V ${k(base.value)}, uplift ${k(base.holdDown)}`, LP.toWorld(Object.assign(center, { z: -2 })), 0.8);
       });
     }
 

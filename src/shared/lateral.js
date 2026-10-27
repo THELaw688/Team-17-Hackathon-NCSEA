@@ -5,6 +5,37 @@
   const LP = root.LP = root.LP || {};
   const r = LP.round;
 
+  // ---- Role 5: ASCE 7 seismic coefficient -------------------------------------
+  // ASCE 7-22 Table 12.2-1, building frame systems: the steel frame carries gravity, the walls only lateral.
+  LP.SYSTEMS = {
+    specialRCWall:      { name: 'Special reinforced concrete shear walls', R: 6 },
+    ordinaryRCWall:     { name: 'Ordinary reinforced concrete shear walls', R: 5 },
+    specialMasonryWall: { name: 'Special reinforced masonry shear walls', R: 5.5 }
+  };
+  const IE = { I: 1.0, II: 1.0, III: 1.25, IV: 1.5 }; // ASCE 7-22 Table 1.5-2
+
+  /**
+   * Seismic response coefficient and distribution exponent for b.inputs.lateral (ASCE 7 12.8).
+   * @param {object} b building from LP.buildModel
+   * @returns {{Cs: number, k: number, calc: string[]}}
+   */
+  LP.seismicCs = function (b) {
+    const L = b.inputs.lateral;
+    if (L.mode !== 'asce7') return { Cs: L.Cs, k: 1, calc: [`Cs = ${L.Cs} (typed in, Override mode)`] };
+    const sys = LP.SYSTEMS[L.system], Ie = IE[L.riskCategory], RI = sys.R / Ie;
+    const hn = b.levels[b.levels.length - 1].elev, T = 0.02 * hn ** 0.75; // Table 12.8-2, all other systems
+    const base = L.SDS / RI, max = L.SD1 / (T * RI), min = Math.max(0.044 * L.SDS * Ie, 0.01);
+    const Cs = Math.max(Math.min(base, max), min);
+    const k = T <= 0.5 ? 1 : T >= 2.5 ? 2 : 1 + (T - 0.5) / 2;
+    return { Cs, k, calc: [
+      `${sys.name}: R = ${sys.R} (Table 12.2-1, building frame); risk category ${L.riskCategory}: Ie = ${Ie}`,
+      `Period Ta = 0.02 x ${r(hn)}^0.75 = ${r(T, 3)} s (12.8.2.1)`,
+      `Cs = SDS / (R/Ie) = ${L.SDS} / ${r(RI, 3)} = ${r(base, 3)}`,
+      `Limits: upper SD1 / (T R/Ie) = ${r(max, 3)}, lower max(0.044 SDS Ie, 0.01) = ${r(min, 3)}`,
+      `Cs = ${r(Cs, 3)}${Cs === max ? ' (upper limit governs)' : Cs === min ? ' (lower limit governs)' : ''}, k = ${r(k, 3)}`
+    ] };
+  };
+
   // ---- Role 5: story forces --------------------------------------------------
   /**
    * Story force at each level for b.inputs.lateral.
@@ -15,6 +46,7 @@
     const L = b.inputs.lateral, n = b.levels.length;
     const face = L.dir === 'x' ? b.Ly : b.Lx;
     if (L.type === 'wind') {
+      if (L.mode === 'asce7') b.warnings.push(`ASCE 7 wind is not built yet (role 5): wind still uses the Override pressure, ${L.windPressure} psf.`);
       return b.levels.map((lv, i) => {
         const hTrib = lv.height / 2 + (i < n - 1 ? b.levels[i + 1].height / 2 : 0);
         const F = L.windPressure * face * hTrib / 1000;
@@ -25,19 +57,23 @@
         ] };
       });
     }
+    const s = LP.seismicCs(b);
     const W = b.levels.map(lv => lv.dead * b.Lx * b.Ly / 1000);
-    const sumW = W.reduce((s, v) => s + v, 0), V = L.Cs * sumW;
-    const sumWh = b.levels.reduce((s, lv, i) => s + W[i] * lv.elev, 0); // k = 1 (short period)
+    const sumW = W.reduce((t, v) => t + v, 0), V = s.Cs * sumW;
+    const wh = b.levels.map((lv, i) => W[i] * lv.elev ** s.k), sumWh = wh.reduce((t, v) => t + v, 0);
     return b.levels.map((lv, i) => {
-      const F = V * W[i] * lv.elev / sumWh;
+      const F = V * wh[i] / sumWh;
       return { F, calc: [
         `Seismic weight W = ${lv.dead} psf x ${r(b.Lx)} x ${r(b.Ly)} / 1000 = ${r(W[i])} kips`,
-        `Base shear V = Cs x total W = ${L.Cs} x ${r(sumW)} = ${r(V)} kips`,
-        `Vertical distribution (ASCE 7 ELF, k = 1): Cvx = w h / sum(w h) = ${r(W[i] * lv.elev)} / ${r(sumWh)} = ${r(W[i] * lv.elev / sumWh, 3)}`,
+        ...s.calc,
+        `Base shear V = Cs x total W = ${r(s.Cs, 3)} x ${r(sumW)} = ${r(V)} kips${L.mode === 'asce7' ? ' (strength level E; ASD uses 0.7E)' : ''}`,
+        `Vertical distribution (ASCE 7 ELF, k = ${r(s.k, 3)}): Cvx = w h^k / sum(w h^k) = ${r(wh[i])} / ${r(sumWh)} = ${r(wh[i] / sumWh, 3)}`,
         `F = Cvx x V = ${r(F)} kips`
       ] };
     });
   };
+  // Tells app.js the ASCE 7 inputs reach the analysis, so it drops its "not connected yet" warning.
+  LP.asce7Ready = true;
 
   // ---- Role 5: diaphragm distribution to walls --------------------------------
   /**

@@ -62,9 +62,9 @@
 
     // ---- Drawing helpers ---------------------------------------------------------------------------
     add(stage, update, offset = 0) {
-      // Wall and foundation arrows run inside the wall panels and footings, which the app draws fairly
-      // solid, so those are drawn on top rather than hidden behind them.
-      const mat = new THREE.MeshLambertMaterial({ color: STAGES[stage].color, transparent: true, depthWrite: false, depthTest: stage < 3 });
+      // Collector, wall and foundation arrows run along edge beams, inside wall panels and footings,
+      // which the app draws fairly solid, so those are drawn on top rather than hidden behind them.
+      const mat = new THREE.MeshLambertMaterial({ color: STAGES[stage].color, transparent: true, depthWrite: false, depthTest: stage < 2 });
       const g = new THREE.Group(), shaft = new THREE.Mesh(this.shaftGeo, mat), head = new THREE.Mesh(this.headGeo, mat);
       g.add(shaft, head);
       g.userData = { mat, shaft, head };
@@ -171,7 +171,12 @@
 
       // 3. Collectors: the collector force only, along the parts of each line with no wall,
       //    flowing toward the wall and growing as it gets there.
+      //    Collector forces are small next to the wall base shear (1.1 k vs 16.5 k in the default
+      //    building), so on the shared scale they shrank to specks. They are sized against the
+      //    largest collector force at this level instead, with a visible minimum; labels give the numbers.
       const capColl = [];
+      const collMax = Math.max(...b.wallLines.map(l => { const cd = Math.abs(lineR(l)) > 1e-6 && LP.collectorDiagram(b, li, l); return cd ? cd.Fmax : 0; }), 1e-9);
+      const collSize = F => { const f = Math.min(1, Math.abs(F) / collMax); return { len: 3 + 6 * f, rad: 0.25 + 0.4 * f }; };
       b.wallLines.forEach(l => {
         const R = lineR(l), cd = Math.abs(R) > 1e-6 && LP.collectorDiagram(b, li, l);
         if (!cd) return;
@@ -185,17 +190,20 @@
         if (Ll - cur > 0.5) segs.push([cur, Ll]);
         segs.forEach(([a0, a1]) => {
           const toRight = ws.some(w => Math.abs(w.from - a1) < 0.5), flowSign = toRight ? 1 : -1;
-          const d = D(ax.x * flowSign, ax.y * flowSign), m = Math.max(3, Math.round((a1 - a0) / 6));
+          // Every collector arrow points with the load and travels that way: on the upwind side it
+          // pushes into the wall, growing; on the downwind side it pulls the wall along, shrinking
+          // as it moves away.
+          const forceSign = Math.sign(R) || 1, d = D(ax.x * forceSign, ax.y * forceSign), m = Math.max(3, Math.round((a1 - a0) / 6));
           for (let k = 0; k < m; k++) {
             this.add(2, u => {
-              const f = (k + u) / m, o = toRight ? a0 + (a1 - a0) * f : a1 - (a1 - a0) * f;
-              return centred(linePt(o, 1.2), d, size(Fat(o)), Math.min(1, Math.abs(Fat(o)) / (cd.Fmax || 1) * 3));
+              const f = (k + u) / m, o = forceSign > 0 ? a0 + (a1 - a0) * f : a1 - (a1 - a0) * f;
+              return centred(linePt(o, 3.5), d, collSize(Fat(o)), 0.4 + 0.6 * Math.min(1, Math.abs(Fat(o)) / collMax));
             });
           }
           // Pushing into the wall in the direction of the load is compression; pulling is tension.
           const Fend = Math.abs(Fat(toRight ? a1 - 0.01 : a0 + 0.01)), comp = flowSign * (Math.sign(R) || 1) > 0;
           if (Fend > 0.05) {
-            this.label(`Collector ${comp ? 'compression' : 'tension'} ${r1(Fend)} k`, linePt((a0 + a1) / 2, 6), 2, 0.8);
+            this.label(`Collector ${comp ? 'compression' : 'tension'} ${r1(Fend)} k`, linePt((a0 + a1) / 2, 8), 2, 0.8);
             capColl.push(`${r1(Fend)} k ${comp ? 'pushing (compression)' : 'pulling (tension)'} on ${l.name}`);
           }
         });
