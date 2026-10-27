@@ -68,6 +68,20 @@ how we avoid two people rewriting the same file.
 
 ## Log
 
+### 2026-10-27 — Default a missing risk category to II in the seismic Cs
+**Who:** Nick (+ Claude Code) · **Branch:** fix/default-risk-category
+
+- **What changed:** `LP.seismicCs` treats a missing or unknown `riskCategory` as II (Ie = 1.0), and its
+  calc line shows the category actually used.
+- **Why:** the steel lateral-system checks added with PR #19 build ASCE 7 inputs without a risk
+  category, so Ie was undefined and Cs came out NaN: 3 of the hand-calc checks failed on `dev`. The app
+  always sends a risk category, so on-screen numbers are unchanged; this matches the existing rule that
+  a missing `mode` means Override.
+- **Files:** `src/shared/lateral.js`, `CHANGELOG.md`
+- **Heads up:** **For role 5 (Josh):** this is a two-line change inside `LP.seismicCs`; please check
+  you're happy with II as the default. **For Kevin:** all checks pass again, including your three new
+  steel-system checks.
+
 ### 2026-10-27 — Add steel lateral-system choices and schematic graphics
 **Who:** Kevin (+ Copilot SDK in VS Code) · **Branch:** feature/steel-lateral-systems
 
