@@ -3,6 +3,9 @@
 Shared repository for Team 24. This file is the contract for how we work: folder layout,
 documentation standards, and collaboration rules. **Read it before your first commit.**
 
+📋 **[CHANGELOG.md](CHANGELOG.md) — read it at the start of every task, update it at the end.**
+It's the running log of what everyone (and everyone's AI) has changed.
+
 ---
 
 ## For AI assistants
@@ -10,17 +13,24 @@ documentation standards, and collaboration rules. **Read it before your first co
 If you are an AI assistant (Claude Code, Copilot, Cursor, or anything else) working in this
 repository, these rules apply to you as much as to the humans:
 
-1. **Read this file first**, then look at the folder you are about to touch before writing code.
-2. **Match the surrounding code.** Naming, formatting, and comment density should look like the
+1. **Start every task by reading [CHANGELOG.md](CHANGELOG.md).** `git pull` first, then read the
+   entries newer than the last one you saw, and check its **In progress** section so you don't
+   work on something a teammate is already inside. This is how you find out what changed while you
+   weren't running.
+2. **End every task by adding a CHANGELOG entry** — what changed, why, which files, and anything
+   others need to know. Commit it together with the code change. Never edit or delete someone
+   else's entry; only add your own.
+3. **Read this file**, then look at the folder you are about to touch before writing code.
+4. **Match the surrounding code.** Naming, formatting, and comment density should look like the
    file you are editing, not like your defaults.
-3. **Never force-push, never rewrite shared history, never commit to `main` directly.** See
+5. **Never force-push, never rewrite shared history, never commit to `main` directly.** See
    [Collaboration](#collaboration) below.
-4. **Do not commit secrets.** No API keys, tokens, passwords, or `.env` files — ever. If you need
+6. **Do not commit secrets.** No API keys, tokens, passwords, or `.env` files — ever. If you need
    a secret, read it from an environment variable and document the variable name in the README.
-5. **Explain what you changed and why** in the commit message, not just what file moved.
-6. **Ask before large refactors.** Renaming shared modules or restructuring folders affects
+7. **Explain what you changed and why** in the commit message, not just what file moved.
+8. **Ask before large refactors.** Renaming shared modules or restructuring folders affects
    everyone on the team; raise it in chat first.
-7. **If you are unsure what something does, say so** rather than guessing. A wrong confident
+9. **If you are unsure what something does, say so** rather than guessing. A wrong confident
    answer costs the team more time than a question.
 
 Each teammate should point their own tool at this file so the whole team gets the same behavior:
@@ -42,6 +52,7 @@ Each teammate should point their own tool at this file so the whole team gets th
 ```
 Team-24-Hackathon-NCSEA/
 ├── README.md           # this file — the team contract
+├── CHANGELOG.md        # running log of changes — read at task start, update at task end
 ├── docs/               # design notes, diagrams, meeting notes, research
 ├── src/                # all application source code
 │   ├── frontend/       # UI — pages, components, styles
@@ -205,5 +216,15 @@ cd Team-24-Hackathon-NCSEA
 git checkout dev
 ```
 
-Then read this file, check `docs/` for current decisions, and ask in team chat what needs doing
-before picking something up.
+Then read this file, read [CHANGELOG.md](CHANGELOG.md) to see where the project currently stands,
+check `docs/` for decisions already made, and ask in team chat what needs doing before picking
+something up.
+
+### Every session after that
+
+```bash
+git pull                      # get everyone else's work and changelog entries
+```
+
+Read the new entries at the top of [CHANGELOG.md](CHANGELOG.md) before you start, and add your own
+when you finish.
