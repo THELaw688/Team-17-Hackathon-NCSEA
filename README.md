@@ -1,4 +1,4 @@
-# Team 24 — NCSEA Hackathon
+# Team 17 — NCSEA Hackathon
 
 Shared repository for Team 24. This file is the contract for how we work: folder layout,
 documentation standards, and collaboration rules. **Read it before your first commit.**
