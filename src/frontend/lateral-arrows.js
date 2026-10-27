@@ -108,8 +108,8 @@
       const L = b.inputs.lateral, dir = L.dir, lv = b.levels[li], t = lv.tag, z = lv.elev;
       const system = LP.SYSTEMS[L.system] || LP.SYSTEMS.specialRCWall;
       const isWall = system.graphic === 'wall';
-      this.chips[3].textContent = `4 ${system.layoutPlural}`;
-      this.chips[4].textContent = isWall ? '5 Foundation' : '5 Frame bases';
+      LP.setStageChip(this.chips[3], `4 ${system.layoutPlural}`);
+      LP.setStageChip(this.chips[4], isWall ? '5 Foundation' : '5 Frame bases');
       const dv = dir === 'x' ? { x: 1, y: 0 } : { x: 0, y: 1 }, DV = D(dv.x, dv.y);
       const depth = dir === 'x' ? b.Ly : b.Lx, len = dir === 'x' ? b.Lx : b.Ly;
       // (s, o): s runs across the load (along the windward face), o runs with the load.
