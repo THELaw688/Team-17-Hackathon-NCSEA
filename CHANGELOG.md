@@ -58,6 +58,26 @@ how we avoid two people rewriting the same file.
 
 ## Log
 
+### 2026-10-27 — Add load path explorer: 3D app, gravity + lateral analysis, hand-calc checks
+**Who:** Nick (+ Claude Code) · **Branch:** feature/load-path-explorer
+
+- **What changed:** First working version of the tool. A 3D browser app (Three.js) builds a steel
+  building from grid inputs, runs gravity analysis (deck, beams, girders, columns, footings) and
+  lateral analysis (wind or seismic story forces, flexible or rigid diaphragm with torsion, chords,
+  collectors, shear walls, overturning), colors members by force, animates load flow, and explains
+  any clicked member: where its load comes from, where it goes, and the calculation.
+- **Why:** gives all 7 people a running app and one shared building data format to build on in
+  parallel, instead of starting from a blank repo at kickoff.
+- **Files:** `src/frontend/` (`index.html`, `app.js`, `scene.js`, `overlay.js`, `explain.js`),
+  `src/shared/` (`model.js`, `gravity.js`, `lateral.js`), `tests/shared/check.js`,
+  `docs/load-path-explorer.md`, `docs/decisions.md`, `CHANGELOG.md`
+- **Heads up:** picks the stack (plain JS + Three.js, no build step, no backend); see
+  `docs/decisions.md`, raise it in chat if you disagree. Run: `python -m http.server 8765` from the
+  repo root, open `/src/frontend/`. Run `node tests/shared/check.js` before merging analysis changes
+  (20 hand-calc checks, all passing). Role-by-role file ownership and next tasks are in
+  `docs/load-path-explorer.md`. This branch is based on `main` because `dev` was 8 commits behind
+  it, so merging it into `dev` also brings `dev` up to date.
+
 ### 2026-10-27 — Add automated staleness guards
 **Who:** Sam (+ Claude Code) · **Branch:** main
 
