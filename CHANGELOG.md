@@ -68,6 +68,29 @@ how we avoid two people rewriting the same file.
 
 ## Log
 
+### 2026-10-27 — ASCE 7 wind story forces (Input mode: ASCE 7)
+**Who:** Josh (+ Claude Code) · **Branch:** feature/lateral-loads
+
+- **What changed:** In ASCE 7 input mode, `LP.storyForces` calculates the wind pressure from wind
+  speed V and exposure instead of the typed psf, via new `LP.asce7Wind` and `LP.windKz` in
+  `src/shared/lateral.js`. ASCE 7-22 directional procedure for the MWFRS: Kz from Table 26.10-1
+  (exposure B/C/D), qz = 0.00256 Kz Kzt Ke V^2, windward p = qz Kd G (0.8) at each level's
+  elevation, leeward p = qh Kd G |Cp| with Cp from L/B (Fig. 27.3-1), net = windward + leeward with
+  the 16 psf minimum (27.1.5). Every factor and its ASCE 7 reference shows in the story force calc.
+  Removed the "ASCE 7 wind is not built yet" warning.
+- **Why:** replaces the hand-typed wind psf with the code calculation, using the wind speed and
+  exposure inputs role 1 added; completes role 5's ASCE 7 story forces (seismic merged in PR #13).
+- **Files:** `src/shared/lateral.js` (role 5 section only), `CHANGELOG.md`
+- **Heads up:** Override mode is unchanged, so all 90 `check.js` checks still pass, including
+  Kevin's custom wall layout ones (run in the browser; Node not installed here). Fixed factors with no input box yet: Kd = 0.85, G = 0.85
+  (rigid), Kzt = 1 (flat site), Ke = 1 (sea level); they're real variables in `LP.asce7Wind`, so
+  input boxes can be wired in later (role 1). Forces are strength level W; the calc says ASD uses
+  0.6W. Windward pressure is read at each level's elevation and applied over its tributary height.
+  Not included: torsional wind cases 2-4 (Fig. 27.3-8), parapets, roof uplift, flexible-building
+  gust factor. Hand checks, exposure C, 105 mph: app default building, X, V = 14.24 + 14.86 + 7.86
+  = 36.96 k (Y: 76.6 k; exposure B 26.88 k with the 16 psf minimum governing at Level 2; D 44.11 k);
+  test building (60 x 50, 2 @ 14 ft), X, 24.76 k. Role 6: good numbers for ASCE 7 wind check cases.
+
 ### 2026-10-27 — Configure shear wall gridlines and lengths
 **Who:** Kevin (+ Copilot SDK in VS Code) · **Branch:** feature/shear-wall-layout
 
