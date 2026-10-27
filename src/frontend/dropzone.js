@@ -85,10 +85,21 @@
         const secs = ((performance.now() - t0) / 1000).toFixed(1);
 
         if (!elements.length) {
+          // Say what the file actually contains. "Found nothing" on its own is useless - the type
+          // list tells you immediately whether this is an architectural export, a proxy-heavy one,
+          // or a type name we simply do not handle yet.
+          const seen = stats.typesSeen || [];
+          const list = seen.length
+            ? '<br><br>What the file contains:<br>' +
+              seen.slice(0, 12).map(([t, n]) => `<code>${esc(t || '(unknown)')}</code> &times; ${n}`).join('<br>') +
+              (seen.length > 12 ? `<br><span class="muted">and ${seen.length - 12} more types</span>` : '')
+            : '<br><br>No geometry was found in the file at all.';
           this.say(`No structural elements found in <b>${esc(file.name)}</b>.<br>` +
-                   'Looked for columns, beams, members, slabs, walls, footings and plates. ' +
-                   'If the Revit export was set to architectural categories only, re-export with ' +
-                   'structural elements included.', 'bad');
+                   'Looked for columns, beams, members, slabs, walls, plates, footings and piles ' +
+                   '(including STANDARDCASE variants).' + list +
+                   '<br><br><span class="muted">If these are all architectural types, re-export from ' +
+                   'Revit with structural categories included. If a structural type is listed above ' +
+                   'that we are not reading, send it to Sam.</span>', 'bad');
           return;
         }
 

@@ -25,15 +25,25 @@
   // IFC type number -> our element kind. Numbers are stable IFC4 type codes used by web-ifc.
   // Anything not listed (doors, pipes, furniture, railings) is skipped at the filter, which also
   // keeps a 200MB Revit export from turning into 200MB of JavaScript objects.
+  // Revit exports the same thing under several spellings depending on version and export settings,
+  // so the STANDARDCASE and ELEMENTEDCASE variants matter in practice.
   const WANTED = {
     IFCCOLUMN: 'column',
+    IFCCOLUMNSTANDARDCASE: 'column',
     IFCBEAM: 'beam',
+    IFCBEAMSTANDARDCASE: 'beam',
     IFCMEMBER: 'beam',
+    IFCMEMBERSTANDARDCASE: 'beam',
     IFCSLAB: 'slab',
+    IFCSLABSTANDARDCASE: 'slab',
+    IFCSLABELEMENTEDCASE: 'slab',
+    IFCPLATE: 'slab',
+    IFCPLATESTANDARDCASE: 'slab',
     IFCWALL: 'wall',
     IFCWALLSTANDARDCASE: 'wall',
+    IFCWALLELEMENTEDCASE: 'wall',
     IFCFOOTING: 'footing',
-    IFCPLATE: 'slab'
+    IFCPILE: 'footing'
   };
 
   const classifyMaterial = name => {
@@ -173,6 +183,7 @@
     say('Reading file...');
     let modelID = null;
     let raw = [], skipped = 0;
+    const seenTypes = {};
     try {
       modelID = api.OpenModel(new Uint8Array(buffer));
 
@@ -196,9 +207,14 @@
       for (let i = 0; i < meshes.size(); i++) {
         const flat = meshes.get(i);
         const id = flat.expressID;
-        const typeName = api.GetNameFromTypeCode
-          ? api.GetNameFromTypeCode(api.GetLineType(modelID, id))
-          : '';
+        // Case varies between web-ifc versions ('IFCCOLUMN' vs 'IfcColumn'), so normalise before
+        // looking the type up rather than trusting one spelling.
+        let typeName = '';
+        try { typeName = String(api.GetNameFromTypeCode(api.GetLineType(modelID, id)) || ''); } catch (e) { /* unknown type */ }
+        typeName = typeName.toUpperCase();
+        // Count everything we see, so an import that finds nothing can say what the file DOES
+        // contain instead of leaving the user guessing.
+        seenTypes[typeName] = (seenTypes[typeName] || 0) + 1;
         const kind = WANTED[typeName];
         if (!kind) { skipped++; continue; }
         const box = meshBox(api, modelID, flat);
@@ -227,10 +243,13 @@
       : LP.detectLengthScale(levels);
 
     const elements = raw.map(e => scaleElement(e, unit.scale));
+    // Most common IFC types in the file, biggest first - the diagnostic when nothing matched.
+    const typesSeen = Object.entries(seenTypes).sort((p, q) => q[1] - p[1]);
+
     return {
       elements,
       stats: { found: elements.length, skipped, unit: unit.unit, scale: unit.scale,
-               storyHeight: unit.storyHeight, confident: unit.confident }
+               storyHeight: unit.storyHeight, confident: unit.confident, typesSeen }
     };
   };
 })(typeof window !== 'undefined' ? window : globalThis);
