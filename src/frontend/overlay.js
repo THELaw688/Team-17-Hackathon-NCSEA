@@ -12,12 +12,31 @@
   const captionBars = [];
 
   /**
+   * Set a stage chip's label, e.g. "4 Shear walls": the number on top, the name underneath.
+   * Use this rather than textContent when relabelling a chip, so every chip keeps the same layout.
+   */
+  LP.setStageChip = function (chip, label) {
+    const m = label.match(/^(\d+)\s+(.+)$/);
+    if (!m) { chip.textContent = label; return; }
+    const num = document.createElement('div'), name = document.createElement('div');
+    num.textContent = m[1];
+    num.style.fontWeight = '600';
+    name.textContent = m[2];
+    chip.textContent = '';
+    chip.style.lineHeight = '1.25';
+    chip.append(num, name);
+  };
+
+  /**
    * Add a Hide / Stages toggle to a caption bar. Collapsed, the bar shrinks to just the button.
+   * Also lays every chip out the same way: its stage number on top, the name underneath, so a
+   * long name doesn't wrap some chips and not others.
    * @param {HTMLElement} bar the bar; its width is restored on expand
-   * @param {HTMLElement} row the row of stage chips (the button goes at its end)
+   * @param {HTMLElement} row the row of stage chips, e.g. "4 Columns" (the button goes at its end)
    * @param {HTMLElement} text the caption line
    */
   LP.collapsibleCaption = function (bar, row, text) {
+    row.querySelectorAll(':scope > span').forEach(chip => LP.setStageChip(chip, chip.textContent));
     const btn = document.createElement('button');
     btn.type = 'button';
     btn.style.cssText = 'flex:none;white-space:nowrap;border:1px solid #d5dae0;background:#fff;color:#1d2733;border-radius:4px;font:inherit;font-size:11px;padding:2px 8px;cursor:pointer;';

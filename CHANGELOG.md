@@ -68,6 +68,21 @@ how we avoid two people rewriting the same file.
 
 ## Log
 
+### 2026-10-27 — Stage chips: number above the name on every chip
+**Who:** Zack (+ Claude Code) · **Branch:** fix/stage-chip-layout
+
+- **What changed:** Every stage chip in the caption bars (gravity and lateral) now shows its
+  number on one line and its name underneath ("4" / "Columns"), so all chips in a bar have the
+  same layout and height. New `LP.setStageChip(chip, label)` in `overlay.js` does the layout;
+  `lateral-arrows.js` now uses it when it renames chips 4 and 5 for the lateral system
+  (e.g. "Frame lines" / "Frame bases" for braced frames).
+- **Why:** at laptop widths some chips wrapped onto two lines and others didn't, so the row looked
+  uneven.
+- **Files:** `src/frontend/overlay.js`, `src/frontend/lateral-arrows.js` (two lines),
+  `CHANGELOG.md`
+- **Heads up:** **To relabel a stage chip, call `LP.setStageChip`, not `chip.textContent =`**, or
+  that chip goes back to one line. Role 3's files (Nick).
+
 ### 2026-10-27 — Collapse button for the load path caption bars
 **Who:** Zack (+ Claude Code) · **Branch:** feature/collapsible-captions
 
