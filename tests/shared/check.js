@@ -97,18 +97,41 @@ check('Unequal bays: sum of footings = 583.2 + 2 x (11.34 + 10.8 + 6.3)', footin
 const heavyCols = runG({ selfWeight: { on: true, beam: 0, girder: 0, column: 100 } });
 check('Custom weights: footing B2 = 135 + 2 stories x 0.1 klf x 14 ft', g(heavyCols, 'FTG-B2'), 137.8);
 
+console.log('\nGravity: live load reduction, ASCE 7 4.7 (floor Lo = 50 psf; roof live not reduced)');
+const llr = runG({ liveLoadReduction: true });
+const red = (m, id) => m.members[id].results.gravity.liveReduction;
+check('Filler beam: K_LL AT = 2 x 250 = 500, L/Lo = 0.25 + 15/sqrt(500)', red(llr, 'BM-L2-10-0').factor, 0.92082, 1e-4);
+check('Filler beam = 32.5 - 12.5 k live x (1 - 0.92082)', g(llr, 'BM-L2-10-0'), 31.51025, 1e-4);
+check('Girder B, bay 1-2 = 65 - 25 k x (1 - (0.25 + 15/sqrt(2 x 500)))', g(llr, 'GD-L2-B-0'), 58.10855, 1e-4);
+check('Column B2 below Level 2 = 135 - 37.5 k x (1 - (0.25 + 15/sqrt(4 x 750)))', g(llr, 'COL-B2-L2'), 117.14479, 1e-4);
+check('Corner column A1 below Level 2 = 33.75 - 9.375 k x (1 - (0.25 + 15/sqrt(4 x 187.5)))', g(llr, 'COL-A1-L2'), 31.85365, 1e-4);
+check('Grid beam on line 1: K_LL AT = 2 x 125 = 250 < 400, no reduction', red(llr, 'BM-L2-0-0').factor, 1, 1e-4);
+check('Column B2 below roof supports no floor: not reduced', g(llr, 'COL-B2-R'), 37.5, 1e-4);
+const llr3 = runG({ storyHeights: [14, 13, 13], liveLoadReduction: true });
+check('3 stories: column B2 below Level 2, 2 floors, AT = 1500: L/Lo = 0.25 + 15/sqrt(6000)', red(llr3, 'COL-B2-L2').factor, 0.44365, 1e-4);
+check('3 stories: column B2 below Level 2 = 232.5 - 75 k x (1 - 0.44365)', g(llr3, 'COL-B2-L2'), 190.77367, 1e-4);
+check('3 stories: column B2 below Level 3, 1 floor = 135 - 37.5 k x (1 - 0.52386)', g(llr3, 'COL-B2-L3'), 117.14479, 1e-4);
+const llrBig = runG({ xBays: [60, 60], yBays: [60, 60], liveLoadReduction: true });
+check('60 ft bays: column B2, one floor: 0.25 + 15/sqrt(14400) = 0.375, limited to 0.50', red(llrBig, 'COL-B2-L2').factor, 0.5, 1e-4);
+check('60 ft bays: column B2 removes half of 180 k floor live', red(llrBig, 'COL-B2-L2').removed, 90, 1e-4);
+const llrHeavy = runG({ storyHeights: [14, 13, 13], floorLive: 125, liveLoadReduction: true });
+check('Lo = 125 psf > 100: column supporting 2 floors reduced 20% only', red(llrHeavy, 'COL-B2-L2').factor, 0.8, 1e-4);
+check('Lo = 125 psf > 100: beam supporting 1 floor not reduced', red(llrHeavy, 'BM-L2-10-0').factor, 1, 1e-4);
+
 // Every member in every test building: load = sum of (D + L at that level) x its tributary rectangles,
-// plus the self-weight it picks up. Columns and footings are checked on their total, so this also
-// covers the column-above chain.
+// plus the self-weight it picks up, minus any live load reduction. Columns and footings are checked
+// on their total, so this also covers the column-above chain.
 const wAt = (m, z) => { const lv = m.levels.find(v => Math.abs(v.elev - z) < 1e-6); return lv.dead + lv.live; };
 [['2 x 2', b], ['unequal bays', u], ['one bay', one], ['no filler beams', bare],
- ['2 x 2 with self-weight', s], ['unequal bays with self-weight', su]].forEach(([name, m]) => {
+ ['2 x 2 with self-weight', s], ['unequal bays with self-weight', su],
+ ['2 x 2 with live load reduction', llr], ['3 stories with live load reduction', llr3]].forEach(([name, m]) => {
   const bad = Object.values(m.members).filter(x => x.results.gravity).filter(x => {
     const gr = x.results.gravity, fromArea = gr.tribArea.rects.reduce((s, q) => s + wAt(m, q.z) * q.area / 1000, 0);
-    return Math.abs(fromArea + gr.selfWeight - gr.value) > 0.001 * Math.max(1, gr.value);
+    const removed = gr.liveReduction ? gr.liveReduction.removed : 0;
+    return Math.abs(fromArea + gr.selfWeight - removed - gr.value) > 0.001 * Math.max(1, gr.value);
   });
   if (bad.length) console.log(`      mismatched: ${bad.map(x => x.id).join(', ')}`);
-  check(`${name}: members whose load != pressure x tributary area + self-weight`, bad.length, 0);
+  check(`${name}: members whose load != pressure x tributary area + self-weight - reduction`, bad.length, 0);
 });
 
 console.log('\nLateral: wind X, 20 psf, flexible');
