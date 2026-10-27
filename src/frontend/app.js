@@ -113,12 +113,14 @@
 
   const view = new LP.Scene($('view'));
   view.onSelect = showPanel;
+  view.onElevationModeChange = enabled => { if (enabled) setMode('lateral'); };
   new LP.DropZone($('drop'), showImported);
   $('useInputs').addEventListener('click', () => { state.imported = false; rebuild(); });
   document.querySelectorAll('#controls input, #controls select').forEach(el => el.addEventListener('change', rebuild));
   document.querySelectorAll('[data-mode]').forEach(el => el.addEventListener('click', () => setMode(el.dataset.mode)));
   $('latDir').addEventListener('change', () => setMode('lateral'));
   $('diaphragm').addEventListener('change', () => setMode('lateral'));
+  $('gridlines').addEventListener('change', e => view.setGridLinesVisible(e.target.checked));
   $('flow').addEventListener('change', e => { view.overlay.showFlow = e.target.checked; view.refresh(); });
   $('diagrams').addEventListener('change', e => { view.overlay.showDiagrams = e.target.checked; view.refresh(); });
   $('clear').addEventListener('click', () => view.select(null));

@@ -41,6 +41,13 @@ Roles 5 and 6 share `lateral.js`: 5 edits only `storyForces` and `distribute`, 6
   - `results[mode] = { value (kips, magnitude used for color), unit, calc: [lines shown in the panel], ...extras }`
 - `b.paths[]`: `{ mode, from, to, value (kips), at: {x, y, z} connection point, note }`: one step of load transfer. The trace, the flow animation and the explain panel all read these.
 - `b.walls[]`: `{ id, name, dir ('x' runs along X at y = at, 'y' runs along Y at x = at), at, from, to, length }`
+- `b.xs` / `b.ys` and `b.xLabels` / `b.yLabels`: gridline positions and their names. The 3D view
+  shows numbered X lines and lettered Y lines with bubbles; click a bubble to rename its
+  gridline. Names persist when the model is rebuilt, and **Show gridlines** hides or shows both.
+- In the 3D view, choose **Elevation** and click a gridline or bubble to isolate the frame on that
+  plane. The view frames the gridline perpendicular to its plane and, in lateral mode, labels the
+  modeled shear-wall story shears and base uplift. Click **Elevation** again to choose another line,
+  or choose a camera preset to leave elevation mode.
 - Units: ft, psf, kips, kip-ft. Plan x = east, plan y = north, z = elevation. The 3D view maps (x, y, z) to Three.js (x, z, -y).
 
 Member ids: `COL-B2-L2` (column at grid B2 below Level 2), `BM-L2-10-0`, `GD-L2-B-0`, `DECK-L2-0-0`, `DIA-R`, `LAT-R`, `CHORD-L2-W`, `COLL-L2-x0`, `WS-L2` (south wall, story below Level 2), `WS-FTG`, `FTG-B2`.

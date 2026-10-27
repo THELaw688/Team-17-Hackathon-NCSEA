@@ -61,6 +61,18 @@ how we avoid two people rewriting the same file.
 
 ## Log
 
+### 2026-10-27 — Add gridline elevation views
+**Who:** Kevin (+ Copilot SDK in VS Code) · **Branch:** feature/named-gridlines
+
+- **What changed:** Added an Elevation camera action: choose it, then click a gridline to isolate
+  and frame that vertical model plane. It switches to lateral mode and shows story wall shears and
+  base uplift labels. Gridline renaming and show/hide remain available outside elevation mode.
+- **Why:** Inspect a specific lateral frame in elevation and see its reactions.
+- **Files:** `src/frontend/scene.js`, `src/frontend/index.html`, `src/frontend/app.js`,
+  `src/frontend/overlay.js`, `docs/load-path-explorer.md`, `CHANGELOG.md`
+- **Heads up:** The section includes members lying on the selected plane; imported models still do
+  not have calculated lateral results.
+
 ### 2026-10-27 — Fix overlapping labels in plan view
 **Who:** Nick (+ Claude Code) · **Branch:** fix/plan-label-overlap
 
