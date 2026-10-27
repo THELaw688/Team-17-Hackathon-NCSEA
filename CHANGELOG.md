@@ -126,7 +126,7 @@ how we avoid two people rewriting the same file.
 **Who:** Kevin (+ Copilot SDK in VS Code) · **Branch:** feature/collapsible-details
 
 - **What changed:** Made the member details panel's load-source, load-destination and calculation
-  sections native expandable dropdowns, open by default.
+  sections native expandable dropdowns, open by default, with clear disclosure arrows and guidance.
 - **Why:** Let users collapse subcategories to focus on the member information they need.
 - **Files:** `src/frontend/explain.js`, `src/frontend/index.html`, `docs/load-path-explorer.md`,
   `CHANGELOG.md`
