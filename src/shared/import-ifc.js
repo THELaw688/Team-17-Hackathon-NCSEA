@@ -18,7 +18,9 @@
 (function (root) {
   const LP = root.LP = root.LP || {};
 
-  LP.IFC_CDN = 'https://cdn.jsdelivr.net/npm/web-ifc@0.0.57/';
+  // Pin the version: web-ifc's API has moved between releases, and a demo that breaks because a CDN
+  // served something newer is a bad afternoon. 0.0.78 was the latest when this was written.
+  LP.IFC_CDN = 'https://cdn.jsdelivr.net/npm/web-ifc@0.0.78/';
 
   // IFC type number -> our element kind. Numbers are stable IFC4 type codes used by web-ifc.
   // Anything not listed (doors, pipes, furniture, railings) is skipped at the filter, which also
@@ -119,17 +121,37 @@
     return e;
   };
 
+  /**
+   * Load a classic script and resolve when it has run.
+   *
+   * The IIFE build is used rather than the ES module because this app has no build step and loads
+   * everything with plain <script> tags - and because a dynamic import() of a cross-origin module
+   * fails in ways that are hard to read. It is injected on first import rather than in index.html
+   * because it is ~6 MB, which nobody should download just to look at the grid model.
+   */
+  const loadScript = src => new Promise((resolve, reject) => {
+    const s = document.createElement('script');
+    s.src = src;
+    s.onload = () => resolve();
+    s.onerror = () => reject(new Error('Could not load the IFC reader from ' + src +
+      ' - check internet access, or that a blocker is not stopping cdn.jsdelivr.net.'));
+    document.head.appendChild(s);
+  });
+
   let apiPromise = null;
-  /** Load web-ifc once per page. Returns an initialised IfcAPI. */
+  /** Load and initialise web-ifc once per page. */
   const getApi = async () => {
     if (!apiPromise) {
       apiPromise = (async () => {
-        const mod = await import(/* webpackIgnore: true */ LP.IFC_CDN + 'web-ifc-api-browser.js');
-        const api = new mod.IfcAPI();
-        api.SetWasmPath(LP.IFC_CDN);
+        if (!root.WebIFC) await loadScript(LP.IFC_CDN + 'web-ifc-api-iife.js');
+        if (!root.WebIFC || !root.WebIFC.IfcAPI) throw new Error('IFC reader loaded but did not expose WebIFC.IfcAPI.');
+        const api = new root.WebIFC.IfcAPI();
+        // Second argument must be true: without it the path is treated as relative to this page and
+        // the WASM fetch 404s.
+        api.SetWasmPath(LP.IFC_CDN, true);
         await api.Init();
         return api;
-      })();
+      })().catch(err => { apiPromise = null; throw err; }); // let a failed load be retried
     }
     return apiPromise;
   };
@@ -145,7 +167,7 @@
   LP.importIFC = async function (buffer, onStatus, opts) {
     opts = opts || {};
     const say = onStatus || (() => {});
-    say('Loading IFC reader...');
+    say(root.WebIFC ? 'Starting IFC reader...' : 'Downloading IFC reader (about 6 MB, first time only)...');
     const api = await getApi();
 
     say('Reading file...');

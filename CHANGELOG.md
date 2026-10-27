@@ -76,8 +76,9 @@ how we avoid two people rewriting the same file.
 - **Heads up:** **An imported model draws but is not analysed.** `gravity.js` and `lateral.js`
   address members by generated ids (`COL-B2-L2`) and read `b.beamXs`, neither of which an imported
   building has — teaching them to read imported geometry is role 4 and role 6 work. The panel says
-  so rather than showing a blank load path. **Untested against a real IFC file** — no `.ifc` was
-  available on this machine; the parse path needs one before anyone relies on it. Units are detected
+  so rather than showing a blank load path. web-ifc is pinned at **0.0.78** and loaded as the IIFE
+  build (`web-ifc-api-iife.js`) injected on first import — ~6 MB, so not loaded on page open — and
+  `SetWasmPath` must pass `absolute = true` or the WASM fetch 404s. Units are detected
   from implied storey heights rather than the file's declaration, because a model 3.28x too big
   draws fine and is silently wrong; the panel shows overall size so a human can check. Element
   geometry comes from world-space bounding boxes, so a sloped or curved member becomes its box.
