@@ -2,6 +2,7 @@
 // Deck -> beams (one-way tributary width) -> girders / columns (simple-span reactions)
 // -> columns summed story by story -> footings. Service-level D + L.
 // Member self-weight is optional (inputs.selfWeight); the deck's own weight is already in the dead psf.
+// Floor live load reduction (ASCE 7-22 4.7) is optional too (inputs.liveLoadReduction).
 // Every member also gets results.gravity.tribArea: the plan rectangles its load comes from,
 // so the 3D view can shade them when the member is selected.
 (function (root) {
@@ -12,6 +13,34 @@
   // roughly a W16x26 filler beam, W24x55 girder and W10x49 column.
   LP.SELF_WEIGHT_DEFAULTS = { on: false, beam: 30, girder: 60, column: 50 };
 
+  // Live load element factor K_LL, ASCE 7-22 Table 4.7-1. This model has no cantilever slabs, so
+  // every column (interior or exterior) is 4 and every beam or girder (interior or edge) is 2.
+  // The deck isn't reduced: a one-way slab's area is capped at 1.5 x span^2 (4.7.6), which for
+  // these beam spacings stays under the 400 sq ft threshold.
+  LP.KLL = { beam: 2, girder: 2, column: 4, footing: 4 };
+
+  /**
+   * ASCE 7-22 4.7 reduction factor L / Lo for one member.
+   * @param {number} KLL live load element factor
+   * @param {number} AT tributary floor area (sq ft); roof area doesn't count
+   * @param {number} floors how many floors the member supports
+   * @param {number} Lo unreduced floor live load (psf)
+   * @returns {{ factor: number, why: string }} factor is 1 when no reduction is allowed
+   */
+  LP.liveReductionFactor = function (KLL, AT, floors, Lo) {
+    if (Lo > 100) {
+      // 4.7.3: heavy live loads aren't reduced, except 20% for members supporting two or more floors.
+      return floors >= 2 ? { factor: 0.8, why: `Lo = ${Lo} psf > 100 psf: 20% reduction for 2+ floors (4.7.3)` }
+                         : { factor: 1, why: `Lo = ${Lo} psf > 100 psf on one floor: no reduction (4.7.3)` };
+    }
+    if (KLL * AT < 400) return { factor: 1, why: `K_LL x AT = ${r(KLL * AT)} sq ft < 400: no reduction` };
+    const limit = floors >= 2 ? 0.4 : 0.5;
+    const raw = 0.25 + 15 / Math.sqrt(KLL * AT);
+    return raw < limit
+      ? { factor: limit, why: `0.25 + 15/sqrt(${r(KLL * AT)}) = ${r(raw, 3)}, limited to ${limit} (${floors >= 2 ? '2+ floors' : 'one floor'})` }
+      : { factor: raw, why: `L/Lo = 0.25 + 15/sqrt(${r(KLL * AT)}) = ${r(raw, 3)} (limit ${limit})` };
+  };
+
   // One plan rectangle of tributary area at elevation z (ft, sq ft).
   const rect = (x0, y0, x1, y1, z) => ({ x0, y0, x1, y1, z, area: (x1 - x0) * (y1 - y0) });
   const tribArea = rects => ({ rects, area: rects.reduce((s, q) => s + q.area, 0) });
@@ -19,8 +48,10 @@
   /**
    * Run the gravity analysis in place: fills members[id].results.gravity and adds 'gravity' paths.
    * results.gravity.selfWeight is the part of `value` that is member self-weight (0 when off).
+   * results.gravity.liveReduction is { KLL, AT, floors, factor, removed } when reduction is on.
    * @param {object} b building from LP.buildModel; reads b.inputs.selfWeight
    *   ({ on, beam, girder, column } in plf, missing keys fall back to LP.SELF_WEIGHT_DEFAULTS)
+   *   and b.inputs.liveLoadReduction (true to reduce floor live load per ASCE 7 4.7)
    */
   LP.runGravity = function (b) {
     const { xs, ys, beamXs } = b;
@@ -152,5 +183,32 @@
         `Footing area needed = P / allowable bearing (e.g. ${r(above)} k / 3 ksf = ${r(above / 3)} sq ft)`
       ], { selfWeight: swAbove, tribArea: tribArea(rectsAbove) });
     }));
+
+    // Live load reduction: each member reduces its own floor live load from its own tributary area.
+    // Loads passed along the path stay unreduced, so a column below works out its own, larger
+    // reduction from everything it supports. Roof live load isn't reduced here (that's 4.8).
+    if (b.inputs && b.inputs.liveLoadReduction) {
+      const levelAt = z => b.levels.find(lv => Math.abs(lv.elev - z) < 1e-6);
+      Object.values(b.members).forEach(m => {
+        const gr = m.results.gravity, KLL = LP.KLL[m.type];
+        if (!gr || !KLL) return;
+        const floorRects = gr.tribArea.rects.filter(q => !levelAt(q.z).isRoof);
+        if (!floorRects.length) return;
+        const AT = floorRects.reduce((s, q) => s + q.area, 0);
+        const L = floorRects.reduce((s, q) => s + levelAt(q.z).live * q.area / 1000, 0);
+        const floors = new Set(floorRects.map(q => q.z)).size;
+        const Lo = Math.max(...floorRects.map(q => levelAt(q.z).live));
+        const { factor, why } = LP.liveReductionFactor(KLL, AT, floors, Lo);
+        const removed = L * (1 - factor);
+        gr.liveReduction = { KLL, AT, floors, factor, removed };
+        gr.value -= removed;
+        gr.calc.push(`Live load reduction (ASCE 7 4.7): K_LL = ${KLL}, floor AT = ${r(AT)} sq ft, ${floors} floor${floors > 1 ? 's' : ''}`);
+        gr.calc.push(why);
+        if (removed > 0) {
+          gr.calc.push(`Floor live load ${r(L)} k x (1 - ${r(factor, 3)}) = ${r(removed)} kips removed`);
+          gr.calc.push(`Load with reduced live load = ${r(gr.value)} kips (loads passed on stay unreduced)`);
+        }
+      });
+    }
   };
 })(typeof window !== 'undefined' ? window : globalThis);

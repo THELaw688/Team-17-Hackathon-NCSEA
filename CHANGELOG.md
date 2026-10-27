@@ -78,6 +78,49 @@ how we avoid two people rewriting the same file.
   `CHANGELOG.md`
 - **Heads up:** Uses native accessible disclosure controls; no dependencies added.
 
+### 2026-10-27 — ASCE 7 seismic story forces (Input mode: ASCE 7)
+**Who:** Josh (+ Claude Code) · **Branch:** feature/lateral-loads
+
+- **What changed:** In ASCE 7 input mode, `LP.storyForces` now calculates the seismic Cs from the
+  panel inputs instead of the typed Cs, via new `LP.seismicCs` and `LP.SYSTEMS` in
+  `src/shared/lateral.js`: R from the lateral system (Table 12.2-1, building frame values: special
+  RC 6, ordinary RC 5, special masonry 5.5), Ie from risk category, Ta = 0.02 hn^0.75, Cs = SDS /
+  (R/Ie) with the SD1 / (T R/Ie) upper and 0.044 SDS Ie / 0.01 lower limits, and k from T for the
+  vertical distribution. Every step shows in the story force calc. Sets `LP.asce7Ready = true`.
+- **Why:** replaces the hand-typed Cs with the code calculation, using the inputs role 1 added.
+  Building frame R values because the steel frame carries all gravity load and the walls only
+  lateral.
+- **Files:** `src/shared/lateral.js` (role 5 section only), `CHANGELOG.md`
+- **Heads up:** Override mode is unchanged, so all 85 `check.js` checks still pass, including
+  Zack's new gravity, self-weight and live load reduction ones (run in the browser; Node not installed here). Seismic forces in ASCE 7 mode are strength level (E); the calc
+  says ASD uses 0.7E. Uses Ta, not Cu Ta. Not included yet: the 0.5 S1 / (R/Ie) minimum (no S1
+  input), seismic design category limits on system choice, TL. **Wind in ASCE 7 mode is not built
+  yet** and shows a warning while still using the Override psf. Hand checks: test building (2 @ 14
+  ft, SDS 1.0, special RC, cat II) V = 0.167 x 330 = 55.0 k; app default building V = 142.5 k.
+  Role 6: an ASCE 7 seismic check case would be good with those numbers.
+
+### 2026-10-27 — Optional floor live load reduction (ASCE 7-22 4.7)
+**Who:** Zack (+ Claude Code) · **Branch:** feature/live-load-reduction
+
+- **What changed:** With `inputs.liveLoadReduction = true`, beams, girders, columns and footings
+  reduce their own floor live load: L = Lo (0.25 + 15 / sqrt(K_LL AT)) when K_LL AT ≥ 400 sq ft,
+  limited to 0.50 Lo (one floor) or 0.40 Lo (2+ floors). K_LL is 4 for columns and footings and
+  2 for beams and girders. Lo over 100 psf gets only the 20% reduction for 2+ floors. AT comes
+  from the `tribArea` rectangles, counting floors only. Each member gets `liveReduction = { KLL,
+  AT, floors, factor, removed }`, and the panel shows the reduction steps. New
+  `LP.liveReductionFactor`. Added 14 hand-calc checks (at 0.01% tolerance), and the
+  load-equals-area check now covers reduced members too (85 checks, all passing).
+- **Why:** real column and footing design uses reduced live load; leaving it out overstates
+  multi-story column loads by a lot (column B2 in the default 3-story building: 232.5 k vs 190.8 k).
+- **Files:** `src/shared/gravity.js`, `tests/shared/check.js`, `docs/load-path-explorer.md`,
+  `CHANGELOG.md`
+- **Heads up:** **Off by default, so no numbers change.** **Ask for Nick (role 1):** a "Live
+  load reduction (ASCE 7 4.7)" checkbox under Gravity loads, read into `inputs.liveLoadReduction`.
+  Path values stay unreduced, because each member reduces its own live load (that's how the code
+  works), so the load on a member can be less than the sum of the paths into it when this is on.
+  Not covered: deck (one-way slab area cap), roof live reduction (4.8), and assembly or parking
+  occupancies.
+
 ### 2026-10-27 — Add gridline elevation views
 **Who:** Kevin (+ Copilot SDK in VS Code) · **Branch:** feature/named-gridlines
 
