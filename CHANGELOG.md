@@ -58,6 +58,16 @@ how we avoid two people rewriting the same file.
 
 ## Log
 
+### 2026-10-27 — Add shared links file
+**Who:** Sam (+ Claude Code) · **Branch:** main
+
+- **What changed:** Created `docs/links.md` holding hackathon reference links, starting with the
+  organizers' Google Slides deck. Linked it from the top of the README.
+- **Why:** One known place for shared links beats hunting through chat history mid-hackathon.
+- **Files:** `docs/links.md`, `README.md`, `CHANGELOG.md`
+- **Heads up:** AI assistants can't open Google Docs/Slides links — they need a signed-in session.
+  If a linked document's contents matter, paste the relevant text into chat or into `docs/`.
+
 ### 2026-10-27 — Add presentation branch
 **Who:** Sam (+ Claude Code) · **Branch:** main
 

@@ -6,6 +6,8 @@ documentation standards, and collaboration rules. **Read it before your first co
 📋 **[CHANGELOG.md](CHANGELOG.md) — read it at the start of every task, update it at the end.**
 It's the running log of what everyone (and everyone's AI) has changed.
 
+🔗 **[docs/links.md](docs/links.md)** — hackathon slide deck, rules, and other shared links.
+
 ---
 
 ## For AI assistants
