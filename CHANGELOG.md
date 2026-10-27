@@ -81,13 +81,33 @@ how we avoid two people rewriting the same file.
   Building frame R values because the steel frame carries all gravity load and the walls only
   lateral.
 - **Files:** `src/shared/lateral.js` (role 5 section only), `CHANGELOG.md`
-- **Heads up:** Override mode is unchanged, so all 58 `check.js` checks still pass, including
-  Zack's new gravity ones (run in the browser; Node not installed here). Seismic forces in ASCE 7 mode are strength level (E); the calc
+- **Heads up:** Override mode is unchanged, so all 69 `check.js` checks still pass, including
+  Zack's new gravity and self-weight ones (run in the browser; Node not installed here). Seismic forces in ASCE 7 mode are strength level (E); the calc
   says ASD uses 0.7E. Uses Ta, not Cu Ta. Not included yet: the 0.5 S1 / (R/Ie) minimum (no S1
   input), seismic design category limits on system choice, TL. **Wind in ASCE 7 mode is not built
   yet** and shows a warning while still using the Override psf. Hand checks: test building (2 @ 14
   ft, SDS 1.0, special RC, cat II) V = 0.167 x 330 = 55.0 k; app default building V = 142.5 k.
   Role 6: an ASCE 7 seismic check case would be good with those numbers.
+
+### 2026-10-27 — Optional member self-weight in the gravity analysis
+**Who:** Zack (+ Claude Code) · **Branch:** feature/self-weight
+
+- **What changed:** `LP.runGravity` can add member self-weight, read from `inputs.selfWeight =
+  { on, beam, girder, column }` in plf. Beams and girders carry it as a uniform load, and each
+  column adds its own story's weight at its bottom. It's off by default; the assumed weights
+  (`LP.SELF_WEIGHT_DEFAULTS`: 30 / 60 / 50 plf) are roughly a W16x26 filler beam, W24x55 girder
+  and W10x49 column. Each member's `selfWeight` field says how much of its load is self-weight,
+  and the panel shows the self-weight line in the calc when it's on. Added 9 hand-calc checks,
+  and the tributary-area check now covers self-weight too (58 checks, all passing).
+- **Why:** column and footing loads are low without the framing's own weight, and seeing where
+  the framing's own weight goes is part of understanding the load path.
+- **Files:** `src/shared/gravity.js`, `tests/shared/check.js`, `docs/load-path-explorer.md`,
+  `CHANGELOG.md`
+- **Heads up:** **Off by default, so no numbers change.** **Ask for Nick (role 1):** add a "Member
+  self-weight" checkbox under Gravity loads, plus beam / girder / column plf boxes, read into
+  `inputs.selfWeight`. Spec in `docs/load-path-explorer.md`. The deck's own weight isn't added
+  because it's already in the dead psf. Lateral analysis doesn't read gravity results, so seismic
+  weight is unchanged.
 
 ### 2026-10-27 — Make collector arrows visible
 **Who:** Nick (+ Claude Code) · **Branch:** fix/collector-arrows
