@@ -60,6 +60,18 @@ how we avoid two people rewriting the same file.
 
 ## Log
 
+### 2026-10-27 — Add role 5 lateral input list for role 1
+**Who:** Josh (+ Claude Code) · **Branch:** feature/lateral-loads
+
+- **What changed:** Added `docs/role5-inputs.md`: the ASCE 7-22 inputs role 5 needs (risk
+  category, SDS, SD1, lateral system, wind speed, exposure, accidental torsion), with defaults,
+  proposed `inputs.lateral` keys, and MVP / nice-to-have / stretch priority.
+- **Why:** the new input boxes live in role 1's files (`index.html`, `app.js`, `model.js`), so
+  role 1 needs the list before role 5's seismic and wind math can be wired up.
+- **Files:** `docs/role5-inputs.md`, `CHANGELOG.md`
+- **Heads up:** proposal only, no code changed. Nick: the "Ask for role 1" table at the top is the
+  part you need. The current Cs and Wind (psf) boxes stay as an Override mode.
+
 ### 2026-10-27 — Add load path explorer: 3D app, gravity + lateral analysis, hand-calc checks
 **Who:** Nick (+ Claude Code) · **Branch:** feature/load-path-explorer
 
