@@ -25,7 +25,10 @@
   LP.seismicCs = function (b) {
     const L = b.inputs.lateral;
     if (L.mode !== 'asce7') return { Cs: L.Cs, k: 1, calc: [`Cs = ${L.Cs} (typed in, Override mode)`] };
-    const sys = LP.SYSTEMS[L.system] || LP.SYSTEMS.specialRCWall, Ie = IE[L.riskCategory], RI = sys.R / Ie;
+    // A missing or unknown risk category means II (Ie = 1.0), as a missing mode means Override,
+    // so inputs built without the panel (tests, imports) still give a real Cs instead of NaN.
+    const rc = IE[L.riskCategory] ? L.riskCategory : 'II';
+    const sys = LP.SYSTEMS[L.system] || LP.SYSTEMS.specialRCWall, Ie = IE[rc], RI = sys.R / Ie;
     const hn = b.levels[b.levels.length - 1].elev;
     const period = sys.period || { Ct: 0.02, x: 0.75 };
     const T = period.Ct * hn ** period.x;
@@ -33,7 +36,7 @@
     const Cs = Math.max(Math.min(base, max), min);
     const k = T <= 0.5 ? 1 : T >= 2.5 ? 2 : 1 + (T - 0.5) / 2;
     return { Cs, k, calc: [
-      `${sys.name}: R = ${sys.R} (Table 12.2-1); risk category ${L.riskCategory}: Ie = ${Ie}`,
+      `${sys.name}: R = ${sys.R} (Table 12.2-1); risk category ${rc}: Ie = ${Ie}`,
       `Period Ta = ${period.Ct} x ${r(hn)}^${period.x} = ${r(T, 3)} s (Table 12.8-2, 12.8.2.1)`,
       `Cs = SDS / (R/Ie) = ${L.SDS} / ${r(RI, 3)} = ${r(base, 3)}`,
       `Limits: upper SD1 / (T R/Ie) = ${r(max, 3)}, lower max(0.044 SDS Ie, 0.01) = ${r(min, 3)}`,
